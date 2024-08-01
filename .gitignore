@@ -1,0 +1,5 @@
+xrun.*
+xcelium.*
+*.vcd
+*.shm
+xcelium.d/
