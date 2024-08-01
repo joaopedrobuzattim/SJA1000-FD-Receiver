@@ -1,5 +1,6 @@
 xrun.*
 xcelium.*
 *.vcd
-*.shm
+
+waves.shm/
 xcelium.d/
