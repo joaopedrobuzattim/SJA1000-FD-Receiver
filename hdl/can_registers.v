@@ -238,6 +238,10 @@ module can_registers
   time_segment2,
   triple_sampling,
 
+  /* FD Data Bit Rate Register  */
+  en_FD_bit_rate_change,
+  FD_BRP_multiplier,
+
   /* Error Warning Limit register */
   error_warning_limit,
 
@@ -348,6 +352,9 @@ input         tx_state_q;
 output        overload_request;
 input         overload_frame;
 
+/* FD Data Bit Rate Register  */
+output      en_FD_bit_rate_change;
+output      [5:0] FD_BRP_multiplier;
 
 /* Arbitration Lost Capture Register */
 output        read_arbitration_lost_capture_reg;
@@ -450,6 +457,10 @@ wire we_mode                  = cs & we & (addr_write == 8'd0);
 wire we_command               = cs & we & (addr_write == 8'd1);
 wire we_bus_timing_0          = cs & we & (addr_write == 8'd6) & reset_mode;
 wire we_bus_timing_1          = cs & we & (addr_write == 8'd7) & reset_mode;
+
+/* FD Data Bit Rate Register  */
+wire we_fd_data_bit_rate_register = cs & we & (addr_write == 8'd9) & reset_mode;
+
 wire we_clock_divider_low     = cs & we & (addr_write == 8'd31);
 wire we_clock_divider_hi      = we_clock_divider_low & reset_mode;
 
@@ -503,6 +514,35 @@ begin
 end
 
 
+/* FD Data Bit Rate Register (FDDBR) */
+
+/* FDDBR.0 (BRP_FD_EN) = Quando possuir valor dominante, os bits de dados de FRAMES FD são amostrados utilizando
+a bit rate alterada pelo multiplicador do BRP. Quando possui valor recessivo, a fase de dados do frame FD é ignorado 
+( comportamento padrão FD Tolerant )*/
+
+/* FDDBR.1 (BRP_FD.0) = FD BRP Multiplier 0 */
+/* FDDBR.2 (BRP_FD.1) = FD BRP Multiplier 1 */
+/* FDDBR.3 (BRP_FD.2) = FD BRP Multiplier 2 */
+/* FDDBR.4 (BRP_FD.3) = FD BRP Multiplier 3 */
+/* FDDBR.5 (BRP_FD.4) = FD BRP Multiplier 4 */
+/* FDDBR.6 (BRP_FD.5) = FD BRP Multiplier 5 */
+/* FDDBR.7 = XX */
+
+
+/* BRP_FD_DATA =  BRP / (32 × BRP_FD.5 + 16 × BRP_FD.4 + 8 × BRP_FD.3 + 4 × BRP_FD.2 + 2 × BRP_FD.1 + BRP_FD.0 + 1) */
+
+wire  [7:0] fd_data_bit_rate_reg;
+
+can_register_asyn #(7, 0) FDDBR_REG
+( .data_in(data_in[7:1]),
+  .data_out(fd_data_bit_rate_reg),
+  .we(we_fd_data_bit_rate_register),
+  .clk(clk),
+  .rst(rst)
+);
+
+assign   en_FD_bit_rate_change = fd_data_bit_rate_reg[0];
+assign   FD_BRP_multiplier = fd_data_bit_rate_reg[6:1];
 
 /* Mode register */
 wire   [0:0] mode;
@@ -1097,6 +1137,7 @@ begin
     {1'h1, 5'd04} :  data_out = irq_en_ext;                             // extended mode
     {1'h1, 5'd06} :  data_out = bus_timing_0;                           // extended mode
     {1'h1, 5'd07} :  data_out = bus_timing_1;                           // extended mode
+    {1'h1, 5'd09} :  data_out = fd_data_bit_rate_reg;                   // extended mode ( SJA1000 Test Register )
     {1'h1, 5'd11} :  data_out = {3'h0, arbitration_lost_capture[4:0]};  // extended mode
     {1'h1, 5'd12} :  data_out = error_capture_code;                     // extended mode
     {1'h1, 5'd13} :  data_out = error_warning_limit;                    // extended mode
@@ -1125,6 +1166,7 @@ begin
     {1'h0, 5'd05} :  data_out = reset_mode? acceptance_mask_0 : 8'hff;  // basic mode
     {1'h0, 5'd06} :  data_out = reset_mode? bus_timing_0 : 8'hff;       // basic mode
     {1'h0, 5'd07} :  data_out = reset_mode? bus_timing_1 : 8'hff;       // basic mode
+    {1'h0, 5'd09} :  data_out = reset_mode? fd_data_bit_rate_reg : 8'hff;// extended mode ( SJA1000 Test Register )
     {1'h0, 5'd10} :  data_out = reset_mode? 8'hff : tx_data_0;          // basic mode
     {1'h0, 5'd11} :  data_out = reset_mode? 8'hff : tx_data_1;          // basic mode
     {1'h0, 5'd12} :  data_out = reset_mode? 8'hff : tx_data_2;          // basic mode
