@@ -2,5 +2,9 @@ xrun.*
 xcelium.*
 *.vcd
 
+/testbench_xcelium/*.v
+/testbench_icarus/*.v
+
 waves.shm/
 xcelium.d/
+.simvision/

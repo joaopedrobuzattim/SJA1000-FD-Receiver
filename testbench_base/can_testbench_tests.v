@@ -1,3 +1,84 @@
+task test_read_write_on_BRP_Modifier_register;
+begin
+
+  //Entrando em modo reset
+  write_register(8'd0, {7'h0, (`CAN_MODE_RESET)});
+  write_register2(8'd0, {7'h0, (`CAN_MODE_RESET)});
+
+  repeat ((`CAN_TIMING1_TSEG1 + `CAN_TIMING1_TSEG2 + 3)*BRP) @ (posedge clk);
+
+  // Escrevendo no registrador FD Data Bit Rate Register (FDDBR)
+  // 0 0 0 0 0 1 0 1  
+  write_register_impl(2'h3, 8'd09, 8'h05);
+
+  read_register(8'd09, tmp_data);
+
+  repeat ((`CAN_TIMING1_TSEG1 + `CAN_TIMING1_TSEG2 + 3)*BRP) @ (posedge clk);
+
+  if(tmp_data == 8'h05)
+  begin
+    $display("OK!");
+  end
+  else
+  begin 
+    $display("Not OK.");
+  end
+
+  repeat ((`CAN_TIMING1_TSEG1 + `CAN_TIMING1_TSEG2 + 3)*BRP) @ (posedge clk);
+
+  read_register2(8'd09, tmp_data);
+
+  if(tmp_data == 8'h05)
+  begin
+    $display("OK!");
+  end
+  else
+  begin 
+    $display("Not OK.");
+  end
+
+  repeat ((`CAN_TIMING1_TSEG1 + `CAN_TIMING1_TSEG2 + 3)*BRP) @ (posedge clk);
+
+  // Switch-off reset mode
+  write_register(8'd0, {7'h0, ~(`CAN_MODE_RESET)});
+  write_register2(8'd0, {7'h0, ~(`CAN_MODE_RESET)});
+
+  repeat ((`CAN_TIMING1_TSEG1 + `CAN_TIMING1_TSEG2 + 3)*BRP) @ (posedge clk);
+
+  // Tentando escrever no registrador fora do modo RESET
+  write_register_impl(2'h3, 8'd09, 8'h07);
+
+  repeat ((`CAN_TIMING1_TSEG1 + `CAN_TIMING1_TSEG2 + 3)*BRP) @ (posedge clk);
+
+  read_register(8'd09, tmp_data);
+
+  if(tmp_data != 8'h07)
+  begin
+    $display("OK!");
+  end
+  else
+  begin 
+    $display("Not OK.");
+  end
+
+  read_register2(8'd09, tmp_data);
+
+  repeat ((`CAN_TIMING1_TSEG1 + `CAN_TIMING1_TSEG2 + 3)*BRP) @ (posedge clk);
+
+  if(tmp_data != 8'h07)
+  begin
+    $display("OK!");
+  end
+  else
+  begin 
+    $display("Not OK.");
+  end
+
+end
+endtask
+
+
+
 task test_simple_recv;
   reg [2:0]  txd;
   reg [2:0]  rxd;

@@ -354,7 +354,7 @@ input         overload_frame;
 
 /* FD Data Bit Rate Register  */
 output      en_FD_bit_rate_change;
-output      [5:0] FD_BRP_multiplier;
+output      [6:0] FD_BRP_multiplier;
 
 /* Arbitration Lost Capture Register */
 output        read_arbitration_lost_capture_reg;
@@ -533,16 +533,15 @@ a bit rate alterada pelo multiplicador do BRP. Quando possui valor recessivo, a 
 
 wire  [7:0] fd_data_bit_rate_reg;
 
-can_register_asyn #(7, 0) FDDBR_REG
-( .data_in(data_in[7:1]),
+can_register #(8) FDDBR_REG
+( .data_in(data_in),
   .data_out(fd_data_bit_rate_reg),
   .we(we_fd_data_bit_rate_register),
-  .clk(clk),
-  .rst(rst)
+  .clk(clk)
 );
 
 assign   en_FD_bit_rate_change = fd_data_bit_rate_reg[0];
-assign   FD_BRP_multiplier = fd_data_bit_rate_reg[6:1];
+assign   FD_BRP_multiplier = fd_data_bit_rate_reg[7:1];
 
 /* Mode register */
 wire   [0:0] mode;

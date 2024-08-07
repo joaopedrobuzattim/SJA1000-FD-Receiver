@@ -191,19 +191,11 @@ begin
   //write_register_impl(2'h3, 8'd31, 8'd64);
 
   // Set bus timing register 0
-  // 0 1 0 0 0 0 1 1 
-  // SJW = 1 + 1 = 2
-  // BRP = 2.1 + 1 + 1 = 4
   write_register_impl(2'h3, 8'd6, {`CAN_TIMING0_SJW, `CAN_TIMING0_BRP});
 
   // Set bus timing register 1
-  // 0 0 1 0 1 1 1 1
-  // SAM = 0 (Unica Amostragem)
-  // TSEG1 = 8 + 4 + 2 + 1 + 1 = 16
-  // TSEG2 = 2.1 + 1 = 3
   write_register_impl(2'h3, 8'd7, {`CAN_TIMING1_SAM, `CAN_TIMING1_TSEG2, `CAN_TIMING1_TSEG1});
-  
-  // NBT = 1 + 16 + 3 = 20
+ 
 
   // Set Acceptance Code and Acceptance Mask registers (their address differs for basic and extended mode
   if (extended_mode)
@@ -235,6 +227,8 @@ begin
   // After exiting the reset mode sending bus free
   repeat (11) send_bit(1);
 
+
+test_read_write_on_BRP_Modifier_register;
 //  test_simple_recv;
 //  test_synchronization;       // test currently switched off
 //  test_empty_fifo_ext;        // test currently switched off
@@ -246,7 +240,7 @@ begin
 //  bus_off_test;               // test currently switched off
 //  forced_bus_off;             // test currently switched off
 //  send_frame_basic;           // test currently switched on
-  send_frame_extended;        // test currently switched off
+// send_frame_extended;        // test currently switched off
 //  self_reception_request;       // test currently switched off
 //  manual_frame_basic;         // test currently switched off
 //  manual_frame_ext;           // test currently switched off
