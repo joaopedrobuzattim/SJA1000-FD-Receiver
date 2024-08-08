@@ -354,7 +354,7 @@ input         overload_frame;
 
 /* FD Data Bit Rate Register  */
 output      en_FD_bit_rate_change;
-output      [6:0] FD_BRP_multiplier;
+output      [5:0] FD_BRP_multiplier;
 
 /* Arbitration Lost Capture Register */
 output        read_arbitration_lost_capture_reg;
@@ -516,17 +516,17 @@ end
 
 /* FD Data Bit Rate Register (FDDBR) */
 
-/* FDDBR.0 (BRP_FD_EN) = Quando possuir valor dominante, os bits de dados de FRAMES FD são amostrados utilizando
+
+/* FDDBR.0 (BRP_FD.0) = FD BRP Multiplier 0 */
+/* FDDBR.1 (BRP_FD.1) = FD BRP Multiplier 1 */
+/* FDDBR.2 (BRP_FD.2) = FD BRP Multiplier 2 */
+/* FDDBR.3 (BRP_FD.3) = FD BRP Multiplier 3 */
+/* FDDBR.4 (BRP_FD.4) = FD BRP Multiplier 4 */
+/* FDDBR.5 (BRP_FD.5) = FD BRP Multiplier 5 */
+/* FDDBR.6 (BRP_FD_EN) = Quando possuir valor dominante, os bits de dados de FRAMES FD são amostrados utilizando
 a bit rate alterada pelo multiplicador do BRP. Quando possui valor recessivo, a fase de dados do frame FD é ignorado 
 ( comportamento padrão FD Tolerant )*/
-
-/* FDDBR.1 (BRP_FD.0) = FD BRP Multiplier 0 */
-/* FDDBR.2 (BRP_FD.1) = FD BRP Multiplier 1 */
-/* FDDBR.3 (BRP_FD.2) = FD BRP Multiplier 2 */
-/* FDDBR.4 (BRP_FD.3) = FD BRP Multiplier 3 */
-/* FDDBR.5 (BRP_FD.4) = FD BRP Multiplier 4 */
-/* FDDBR.6 (BRP_FD.5) = FD BRP Multiplier 5 */
-/* FDDBR.7 = XX */
+/* FDDBR.7 (BRP_FD.7) = XX  */
 
 
 /* BRP_FD_DATA =  BRP / (32 × BRP_FD.5 + 16 × BRP_FD.4 + 8 × BRP_FD.3 + 4 × BRP_FD.2 + 2 × BRP_FD.1 + BRP_FD.0 + 1) */
@@ -540,8 +540,8 @@ can_register #(8) FDDBR_REG
   .clk(clk)
 );
 
-assign   en_FD_bit_rate_change = fd_data_bit_rate_reg[0];
-assign   FD_BRP_multiplier = fd_data_bit_rate_reg[7:1];
+assign   en_FD_bit_rate_change = fd_data_bit_rate_reg[6];
+assign   FD_BRP_multiplier = fd_data_bit_rate_reg[5:0];
 
 /* Mode register */
 wire   [0:0] mode;

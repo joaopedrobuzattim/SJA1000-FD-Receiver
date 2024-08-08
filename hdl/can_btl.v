@@ -168,6 +168,10 @@ module can_btl
   time_segment2,
   triple_sampling,
 
+  /* FD Data Bit Rate Register  */
+  en_FD_bit_rate_change,
+  FD_BRP_multiplier,
+
   /* Output signals from this module */
   sample_point,
   sampled_bit,
@@ -206,6 +210,10 @@ input   [1:0] sync_jump_width;
 input   [3:0] time_segment1;
 input   [2:0] time_segment2;
 input         triple_sampling;
+
+/* FD Data Bit Rate Register  */
+input  en_FD_bit_rate_change;
+input  [5:0] FD_BRP_multiplier;
 
 /* Output from can_bsp module */
 input         rx_idle;
