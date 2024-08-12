@@ -665,7 +665,7 @@ assign go_rx_rtr2     = (~bit_de_stuff) & sample_point &  rx_id2  & (bit_cnt[4:0
 assign go_rx_r1       = (~bit_de_stuff) & sample_point &  rx_rtr2;
 assign go_rx_r0       = (~bit_de_stuff) & sample_point & (rx_ide  & (~sampled_bit) | rx_r1);
 
-assign go_rx_dlc = FD_tolerant ? ( (~bit_de_stuff) & sample_point &  rx_r0 & (~go_rx_skip_fdf) ) : ((~bit_de_stuff) & sample_point &  rx_r0;);
+assign go_rx_dlc = FD_tolerant ? ( (~bit_de_stuff) & sample_point &  rx_r0 & (~go_rx_skip_fdf) ) : ((~bit_de_stuff) & sample_point &  rx_r0);
 
 assign go_rx_data     = (~bit_de_stuff) & sample_point &  rx_dlc  & (bit_cnt[1:0] == 2'd3) &  (sampled_bit   |   (|data_len[2:0])) & (~remote_rq);
 assign go_rx_crc      = (~bit_de_stuff) & sample_point & (rx_dlc  & (bit_cnt[1:0] == 2'd3) & ((~sampled_bit) & (~(|data_len[2:0])) | remote_rq) |
@@ -1846,7 +1846,7 @@ end
 
 
 
-assign tx_successful = FD_tolerant & (transmitter & go_rx_inter & (~go_error_frame) & (~error_frame_ended) & (~overload_frame_ended) & (~arbitration_lost) & (~fdf_r)) :
+assign tx_successful = FD_tolerant ? (transmitter & go_rx_inter & (~go_error_frame) & (~error_frame_ended) & (~overload_frame_ended) & (~arbitration_lost) & (~fdf_r)) :
  (transmitter & go_rx_inter & (~go_error_frame) & (~error_frame_ended) & (~overload_frame_ended) & (~arbitration_lost));
 
 

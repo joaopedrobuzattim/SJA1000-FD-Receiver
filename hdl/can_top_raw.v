@@ -246,7 +246,7 @@ wire go_rx_skip_fdf;
 wire fdf_r;
 
 wire rx_inter_btl;
-wire go_rx_inter_btl
+wire go_rx_inter_btl;
 
 /* FD Data Bit Rate Register  */
 wire en_FD_bit_rate_change;
