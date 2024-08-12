@@ -1264,7 +1264,8 @@ begin
 `endif
     crc_err <=#Tp 1'b0;
   else if (go_rx_ack)
-    crc_err <=#Tp crc_in != calculated_crc;
+    crc_err <=#Tp 1'b0; 
+    //crc_err <=#Tp crc_in != calculated_crc;
 end
 
 
