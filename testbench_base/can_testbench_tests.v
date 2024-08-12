@@ -1272,6 +1272,10 @@ task send_frame_extended;    // CAN IP core sends basic or extended frames in ex
     write_register(8'd0, {7'h0, (`CAN_MODE_RESET)});
     write_register2(8'd0, {7'h0, (`CAN_MODE_RESET)});
 
+    // Configurando o controlador para operar como FD Tolerant
+    write_register(8'd9, 7'h0);
+    write_register2(8'd9, 7'h0);
+
     // Set Clock Divider register
     extended_mode = 1'b1;
     write_register(8'd31, {extended_mode, 7'h0});    // Setting the extended mode
@@ -1853,6 +1857,20 @@ endtask   // test_reset_mode
 task manual_fd_frame_basic_rcv;
   integer done;
   begin
+    // Configurando o controlador para operar como FD Tolerant
+
+    // Switch-on reset mode
+    write_register(8'd0, {7'h0, `CAN_MODE_RESET});
+    write_register2(8'd0, {7'h0, `CAN_MODE_RESET});
+    repeat (50) @ (posedge clk);
+
+    write_register(8'd9, 7'h0);
+    write_register2(8'd9, 7'h0);
+
+    repeat (50) @ (posedge clk);
+    write_register(8'd0, {7'h0, ~(`CAN_MODE_RESET)});
+    write_register2(8'd0, {7'h0, ~(`CAN_MODE_RESET)});
+
     repeat (100) @ (posedge clk);
 
     // After exiting the reset mode sending bus free

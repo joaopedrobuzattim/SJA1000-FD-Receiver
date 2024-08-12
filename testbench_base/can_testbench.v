@@ -228,7 +228,7 @@ begin
   repeat (11) send_bit(1);
 
 
-test_read_write_on_BRP_Modifier_register;
+//test_read_write_on_BRP_Modifier_register;
 //  test_simple_recv;
 //  test_synchronization;       // test currently switched off
 //  test_empty_fifo_ext;        // test currently switched off
@@ -240,7 +240,7 @@ test_read_write_on_BRP_Modifier_register;
 //  bus_off_test;               // test currently switched off
 //  forced_bus_off;             // test currently switched off
 //  send_frame_basic;           // test currently switched on
-// send_frame_extended;        // test currently switched off
+ send_frame_extended;        // test currently switched off
 //  self_reception_request;       // test currently switched off
 //  manual_frame_basic;         // test currently switched off
 //  manual_frame_ext;           // test currently switched off
