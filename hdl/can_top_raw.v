@@ -242,10 +242,16 @@ module can_top_raw
 parameter Tp = 1;
 
 
-`ifdef CAN_FD_TOLERANT
 wire go_rx_skip_fdf;
 wire fdf_r;
-`endif
+
+wire rx_inter_btl;
+wire go_rx_inter_btl
+
+/* FD Data Bit Rate Register  */
+wire en_FD_bit_rate_change;
+wire [5:0] FD_BRP_multiplier;
+
 
 reg          data_out_fifo_selected;
 
@@ -427,6 +433,10 @@ can_registers i_can_registers
   .node_error_active(node_error_active),
   .rx_message_counter(rx_message_counter),
 
+  /* FD Data Bit Rate Register  */
+  .en_FD_bit_rate_change(en_FD_bit_rate_change),
+  .FD_BRP_multiplier(FD_BRP_multiplier),
+
 
   /* Mode register */
   .reset_mode(reset_mode),
@@ -513,7 +523,8 @@ can_registers i_can_registers
 );
 
 
-
+assign rx_inter_btl = (~en_FD_bit_rate_change) ? (rx_inter | fdf_r ): rx_inter;
+assign go_rx_inter_btl = (~en_FD_bit_rate_change)  ? (go_rx_inter | go_rx_skip_fdf) : rx_inter;
 
 /* Connecting can_btl module */
 can_btl i_can_btl
@@ -532,6 +543,10 @@ can_btl i_can_btl
   .time_segment2(time_segment2),
   .triple_sampling(triple_sampling),
 
+  /* FD Data Bit Rate Register  */
+  .en_FD_bit_rate_change(en_FD_bit_rate_change),
+  .FD_BRP_multiplier(FD_BRP_multiplier),
+
   /* Output signals from this module */
   .sample_point(sample_point),
   .sampled_bit(sampled_bit),
@@ -544,14 +559,9 @@ can_btl i_can_btl
   .rx_idle(rx_idle),
   .transmitting(transmitting),
   .transmitter(transmitter),
-`ifdef CAN_FD_TOLERANT
   // also needed for hard_sync for bsp.go_crc_enable
-  .rx_inter(rx_inter | fdf_r),
-  .go_rx_inter(go_rx_inter | go_rx_skip_fdf),
-`else
-  .rx_inter(rx_inter),
-  .go_rx_inter(go_rx_inter),
-`endif
+  .rx_inter(rx_inter_btl),
+  .go_rx_inter(go_rx_inter_btl),
   .tx_next(tx_next),
 
   .go_overload_frame(go_overload_frame),
@@ -583,11 +593,12 @@ can_bsp i_can_bsp
   .data_out(data_out_fifo),
   .fifo_selected(data_out_fifo_selected),
 
-`ifdef CAN_FD_TOLERANT
   .rx_sync_i(rx_sync),
   .go_rx_skip_fdf_o(go_rx_skip_fdf),
   .fdf_o(fdf_r),
-`endif
+
+  /* FD Data Bit Rate Register  */
+  .en_FD_bit_rate_change(en_FD_bit_rate_change),
 
   /* Mode register */
   .reset_mode(reset_mode),

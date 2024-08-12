@@ -648,6 +648,9 @@ wire          bit_err_exc6;
 wire          error_flag_over;
 wire          overload_flag_over;
 
+wire go_rx_inter_acf;
+wire go_error_frame_acf;
+
 wire    [5:0] limited_tx_cnt_ext;
 wire    [5:0] limited_tx_cnt_std;
 
