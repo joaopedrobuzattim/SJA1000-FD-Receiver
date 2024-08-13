@@ -331,6 +331,9 @@ module can_bsp
   output wire        go_rx_skip_fdf_o,
   output wire        fdf_o,
 
+  output wire        go_rx_switch_br_o,
+  output wire        switch_br_o,
+
 
   /* Mode register */
   input  wire        reset_mode,
@@ -546,12 +549,16 @@ reg           first_compare_bit;
 /* Actual received frame is CAN FD one and needs to be ignored */
 reg           fdf_r;
 
+// Permanece dominante enquanto o frame FD estiver sendo transmitido com a Data Bit Rate
+reg           switch_br_r;
+
 /* Fall edge detected inside preceding bittime */
 wire          fd_fall_edge_lstbtm;
 
 wire          fd_fall_edge_raw;
 
 reg           go_rx_skip_fdf; // async
+reg           go_rx_switch_br; // async
 reg     [3:0] fd_skip_cnt;
 wire          fd_skip_finished;
 
@@ -714,8 +721,31 @@ assign last_bit_of_inter = rx_inter & (bit_cnt[1:0] == 2'd2);
 assign not_first_bit_of_inter = rx_inter & (bit_cnt[1:0] != 2'd0);
 
 
-assign go_rx_skip_fdf_o = go_rx_skip_fdf;
-assign fdf_o = fdf_r;
+assign go_rx_switch_br_o = (~FD_tolerant) & go_rx_switch_br;
+assign switch_br_r_o = (~FD_tolerant) & switch_br_r;
+
+// CAN FD Bit Rate Switch Detection ( BRS )
+always @(*)
+begin
+  if(rx_r0 & fdf_r)
+    go_rx_switch_br = sample_point & sampled_bit & (~bit_de_stuff);
+  else
+    go_rx_switch_br = 1'b0;
+end
+
+// Permanece dominante enquanto o frame FD estiver sendo transmitido com a Data Bit Rate
+always @ (posedge clk or posedge rst)
+begin
+  if (rst)
+    switch_br_r <= 1'b0;
+  else if (reset_mode | go_rx_inter | go_error_frame | go_rx_crc_lim )
+    switch_br_r <=#Tp 1'b0;
+  else if (go_rx_switch_br)
+    switch_br_r <=#Tp 1'b1;
+end
+
+assign go_rx_skip_fdf_o = FD_tolerant & go_rx_skip_fdf;
+assign fdf_o = FD_tolerant & fdf_r;
 
 /*
     Idea:
@@ -728,7 +758,7 @@ assign fdf_o = fdf_r;
 */
 assign fd_skip_finished = fd_skip_cnt >= 4'd8;
 
-// asynchronous
+// CAN FD Detection ( EDL )
 always @(*)
 begin
   if(rx_r0 & (~ide))
@@ -872,7 +902,7 @@ begin
 end
 
 
-// Rx r0 state
+// Rx r1 state
 always @ (posedge clk or posedge rst)
 begin
   if (rst)

@@ -240,14 +240,14 @@ begin
 //  bus_off_test;               // test currently switched off
 //  forced_bus_off;             // test currently switched off
 //  send_frame_basic;           // test currently switched on
- send_frame_extended;        // test currently switched off
+// send_frame_extended;        // test currently switched off
 //  self_reception_request;       // test currently switched off
 //  manual_frame_basic;         // test currently switched off
 //  manual_frame_ext;           // test currently switched off
 //    error_test;
 //    register_test;
 //    bus_off_recovery_test;
-//    manual_fd_frame_basic_rcv;
+    manual_fd_frame_basic_rcv;
     //send_into_fd_frame;
     //test_tx_after_fdf;
     //test_tx_after_fdf_err;
