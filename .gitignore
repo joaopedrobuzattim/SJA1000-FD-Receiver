@@ -3,8 +3,8 @@ xcelium.*
 *.vcd
 *.svwf
 
-/testbench_xcelium/*.v
-/testbench_icarus/*.v
+/testbench_xcelium/*.sv
+/testbench_icarus/*.sv
 
 waves.shm/
 xcelium.d/
