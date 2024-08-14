@@ -472,6 +472,9 @@ reg           rx_id2;
 reg           rx_rtr2;
 reg           rx_r1;
 reg           rx_r0;
+reg           rx_r0_fd;
+reg           rx_brs;
+reg           rx_esi;
 reg           rx_dlc;
 reg           rx_data;
 reg           rx_crc;
@@ -483,6 +486,8 @@ reg           go_early_tx_latched;
 
 reg           rtr1;
 reg           ide;
+reg           brs;
+reg           esi;
 reg           rtr2;
 reg    [14:0] crc_in;
 
@@ -558,10 +563,11 @@ wire          fd_fall_edge_lstbtm;
 wire          fd_fall_edge_raw;
 
 reg           go_rx_skip_fdf; // async
-reg           go_rx_switch_br; // async
 reg     [3:0] fd_skip_cnt;
 wire          fd_skip_finished;
 
+// Detecta frames FD
+wire          fdf_detected;
 
 wire    [4:0] error_capture_code_segment;
 wire          error_capture_code_direction;
@@ -580,6 +586,9 @@ wire          go_rx_id2;
 wire          go_rx_rtr2;
 wire          go_rx_r1;
 wire          go_rx_r0;
+wire          go_rx_r0_fd; 
+wire          go_rx_brs; 
+wire          go_rx_esi;
 wire          go_rx_dlc;
 wire          go_rx_data;
 wire          go_rx_crc;
@@ -672,7 +681,7 @@ assign go_rx_rtr2     = (~bit_de_stuff) & sample_point &  rx_id2  & (bit_cnt[4:0
 assign go_rx_r1       = (~bit_de_stuff) & sample_point &  rx_rtr2;
 assign go_rx_r0       = (~bit_de_stuff) & sample_point & (rx_ide  & (~sampled_bit) | rx_r1);
 
-assign go_rx_dlc = FD_tolerant ? ( (~bit_de_stuff) & sample_point &  rx_r0 & (~go_rx_skip_fdf) ) : ((~bit_de_stuff) & sample_point &  rx_r0);
+assign go_rx_dlc = FD_tolerant ? ( (~bit_de_stuff) & sample_point &  rx_r0 & (~go_rx_skip_fdf) ) : ( ((~bit_de_stuff) & sample_point &  rx_r0 & (~fdf_detected) ) |  ((~bit_de_stuff) & sample_point &  rx_esi ) );
 
 assign go_rx_data     = (~bit_de_stuff) & sample_point &  rx_dlc  & (bit_cnt[1:0] == 2'd3) &  (sampled_bit   |   (|data_len[2:0])) & (~remote_rq);
 assign go_rx_crc      = (~bit_de_stuff) & sample_point & (rx_dlc  & (bit_cnt[1:0] == 2'd3) & ((~sampled_bit) & (~(|data_len[2:0])) | remote_rq) |
@@ -721,31 +730,38 @@ assign last_bit_of_inter = rx_inter & (bit_cnt[1:0] == 2'd2);
 assign not_first_bit_of_inter = rx_inter & (bit_cnt[1:0] != 2'd0);
 
 
-assign go_rx_switch_br_o = (~FD_tolerant) & go_rx_switch_br;
-assign switch_br_r_o = (~FD_tolerant) & switch_br_r;
+assign go_rx_switch_br_o = go_rx_brs;
+assign switch_br_r_o = switch_br_r;
 
-// CAN FD Bit Rate Switch Detection ( BRS )
-always @(*)
-begin
-  if(rx_r0 & fdf_r)
-    go_rx_switch_br = sample_point & sampled_bit & (~bit_de_stuff);
-  else
-    go_rx_switch_br = 1'b0;
-end
 
-// Permanece dominante enquanto o frame FD estiver sendo transmitido com a Data Bit Rate
+// FD Detection
+assign fdf_detected = (~FD_tolerant) & (sample_point & sampled_bit & (~bit_de_stuff)) & ( (rx_r0 & (~ide)) | (rx_r1 & ide) );
+
+
+// CAN FD r0 State
+assign go_rx_r0_fd = fdf_detected;
+
+// CAN FD Bit Rate Switch ( BRS ) State
+assign go_rx_brs = sample_point & (~bit_de_stuff) & rx_r0_fd;
+
+
+// CAN FD ESI State
+assign go_rx_esi = rx_brs & sample_point & (~bit_de_stuff);
+
+
+// Permanece alto enquanto o frame FD estiver sendo transmitido com a Data Bit Rate
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
     switch_br_r <= 1'b0;
   else if (reset_mode | go_rx_inter | go_error_frame | go_rx_crc_lim )
     switch_br_r <=#Tp 1'b0;
-  else if (go_rx_switch_br)
+  else if (go_rx_brs)
     switch_br_r <=#Tp 1'b1;
 end
 
-assign go_rx_skip_fdf_o = FD_tolerant & go_rx_skip_fdf;
-assign fdf_o = FD_tolerant & fdf_r;
+assign go_rx_skip_fdf_o = go_rx_skip_fdf;
+assign fdf_o = fdf_r;
 
 /*
     Idea:
@@ -758,13 +774,13 @@ assign fdf_o = FD_tolerant & fdf_r;
 */
 assign fd_skip_finished = fd_skip_cnt >= 4'd8;
 
-// CAN FD Detection ( EDL )
+// Sikp FD Detection
 always @(*)
 begin
   if(rx_r0 & (~ide))
-    go_rx_skip_fdf = sample_point & sampled_bit & (~bit_de_stuff);
+    go_rx_skip_fdf = FD_tolerant & sample_point & sampled_bit & (~bit_de_stuff);
   else if(rx_r1 & ide)
-    go_rx_skip_fdf = sample_point & sampled_bit & (~bit_de_stuff);
+    go_rx_skip_fdf = FD_tolerant & sample_point & sampled_bit & (~bit_de_stuff);
   else
     go_rx_skip_fdf = 1'b0;
 end
@@ -923,10 +939,43 @@ begin
     rx_r0 <= 1'b0;
   else if (FD_tolerant & (go_rx_dlc | go_error_frame | go_rx_skip_fdf))
     rx_r0 <=#Tp 1'b0;
-  else if (go_rx_dlc | go_error_frame)
+  else if (go_rx_dlc | go_error_frame | go_rx_r0_fd)
     rx_r0 <=#Tp 1'b0;
   else if (go_rx_r0)
     rx_r0 <=#Tp 1'b1;
+end
+
+// Rx r0 FD state
+always @ (posedge clk or posedge rst)
+begin
+  if (rst)
+    rx_r0_fd <= 1'b0;
+  else if (go_rx_brs | go_error_frame)
+    rx_r0_fd <=#Tp 1'b0;
+  else if (go_rx_r0_fd)
+    rx_r0_fd <=#Tp 1'b1;
+end
+
+// Rx BRS state (FD Frames)
+always @ (posedge clk or posedge rst)
+begin
+  if (rst)
+    rx_brs <= 1'b0;
+  else if (go_rx_esi | go_error_frame)
+    rx_brs <=#Tp 1'b0;
+  else if (go_rx_brs)
+    rx_brs <=#Tp 1'b1;
+end
+
+// Rx ESI state (FD Frames)
+always @ (posedge clk or posedge rst)
+begin
+  if (rst)
+    rx_esi <= 1'b0;
+  else if (go_rx_dlc | go_error_frame)
+    rx_esi <=#Tp 1'b0;
+  else if (go_rx_esi)
+    rx_esi <=#Tp 1'b1;
 end
 
 
@@ -938,6 +987,8 @@ begin
   else if ( FD_tolerant & (go_rx_data | go_rx_crc | go_error_frame | go_rx_skip_fdf))
     rx_dlc <=#Tp 1'b0;
   else if (go_rx_data | go_rx_crc | go_error_frame)
+    rx_dlc <=#Tp 1'b0;
+  else if (fdf_detected)
     rx_dlc <=#Tp 1'b0;
   else if (go_rx_dlc)
     rx_dlc <=#Tp 1'b1;
@@ -1068,6 +1119,24 @@ begin
     ide <= 1'b0;
   else if (sample_point & rx_ide & (~bit_de_stuff))
     ide <=#Tp sampled_bit;
+end
+
+// brs bit
+always @ (posedge clk or posedge rst)
+begin
+  if (rst)
+    brs <= 1'b0;
+  else if (sample_point & rx_brs & (~bit_de_stuff))
+    brs <=#Tp sampled_bit;
+end
+
+// esi bit
+always @ (posedge clk or posedge rst)
+begin
+  if (rst)
+    esi <= 1'b0;
+  else if (sample_point & rx_esi & (~bit_de_stuff))
+    esi <=#Tp sampled_bit;
 end
 
 

@@ -1,6 +1,7 @@
 xrun.*
 xcelium.*
 *.vcd
+*.svwf
 
 /testbench_xcelium/*.v
 /testbench_icarus/*.v

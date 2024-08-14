@@ -1864,8 +1864,8 @@ task manual_fd_frame_basic_rcv;
     write_register2(8'd0, {7'h0, `CAN_MODE_RESET});
     repeat (50) @ (posedge clk);
 
-    write_register(8'd9, 7'h0);
-    write_register2(8'd9, 7'h0);
+    write_register(8'd9, 8'h0);
+    write_register2(8'd9, 8'h0);
 
     repeat (50) @ (posedge clk);
     write_register(8'd0, {7'h0, ~(`CAN_MODE_RESET)});
@@ -1900,9 +1900,10 @@ task manual_fd_frame_basic_rcv;
         ///*
         send_bit(0);  // SOF
         send_bits(11, 11'b01010101010);    // ID
-        send_bit(1);  // RTR
+        send_bit(0);  // RTR
         send_bit(0);  // IDE
         send_bit(1);  // FD
+        send_bit(0);  // dominant r0 FD
         send_bits(4, 4'b0111);             // DLC
         repeat (10) send_fd_bits(6, 6'b111110);
         // some invalid stuff, does not really matter
