@@ -233,6 +233,8 @@
 // synopsys translate_on
 `include "can_defines.v"
 
+
+
 module can_fd_filter #(
     parameter integer NSAMPLES = 3
 ) (
@@ -728,6 +730,12 @@ assign arbitration_field = rx_id1 | rx_rtr1 | rx_ide | rx_id2 | rx_rtr2;
 
 assign last_bit_of_inter = rx_inter & (bit_cnt[1:0] == 2'd2);
 assign not_first_bit_of_inter = rx_inter & (bit_cnt[1:0] != 2'd0);
+
+
+//Criando registradores de currentState/nextState para facilitar visualizacao do Frame
+
+
+
 
 
 assign go_rx_switch_br_o = go_rx_brs;
@@ -1856,23 +1864,23 @@ end
 
 
 /* Changing bit order from [7:0] to [0:7] */
-can_ibo i_ibo_tx_data_0  (.di(tx_data_0),  .do(r_tx_data_0));
-can_ibo i_ibo_tx_data_1  (.di(tx_data_1),  .do(r_tx_data_1));
-can_ibo i_ibo_tx_data_2  (.di(tx_data_2),  .do(r_tx_data_2));
-can_ibo i_ibo_tx_data_3  (.di(tx_data_3),  .do(r_tx_data_3));
-can_ibo i_ibo_tx_data_4  (.di(tx_data_4),  .do(r_tx_data_4));
-can_ibo i_ibo_tx_data_5  (.di(tx_data_5),  .do(r_tx_data_5));
-can_ibo i_ibo_tx_data_6  (.di(tx_data_6),  .do(r_tx_data_6));
-can_ibo i_ibo_tx_data_7  (.di(tx_data_7),  .do(r_tx_data_7));
-can_ibo i_ibo_tx_data_8  (.di(tx_data_8),  .do(r_tx_data_8));
-can_ibo i_ibo_tx_data_9  (.di(tx_data_9),  .do(r_tx_data_9));
-can_ibo i_ibo_tx_data_10 (.di(tx_data_10), .do(r_tx_data_10));
-can_ibo i_ibo_tx_data_11 (.di(tx_data_11), .do(r_tx_data_11));
-can_ibo i_ibo_tx_data_12 (.di(tx_data_12), .do(r_tx_data_12));
+can_ibo i_ibo_tx_data_0  (.di_ibo(tx_data_0),  .do_ibo(r_tx_data_0));
+can_ibo i_ibo_tx_data_1  (.di_ibo(tx_data_1),  .do_ibo(r_tx_data_1));
+can_ibo i_ibo_tx_data_2  (.di_ibo(tx_data_2),  .do_ibo(r_tx_data_2));
+can_ibo i_ibo_tx_data_3  (.di_ibo(tx_data_3),  .do_ibo(r_tx_data_3));
+can_ibo i_ibo_tx_data_4  (.di_ibo(tx_data_4),  .do_ibo(r_tx_data_4));
+can_ibo i_ibo_tx_data_5  (.di_ibo(tx_data_5),  .do_ibo(r_tx_data_5));
+can_ibo i_ibo_tx_data_6  (.di_ibo(tx_data_6),  .do_ibo(r_tx_data_6));
+can_ibo i_ibo_tx_data_7  (.di_ibo(tx_data_7),  .do_ibo(r_tx_data_7));
+can_ibo i_ibo_tx_data_8  (.di_ibo(tx_data_8),  .do_ibo(r_tx_data_8));
+can_ibo i_ibo_tx_data_9  (.di_ibo(tx_data_9),  .do_ibo(r_tx_data_9));
+can_ibo i_ibo_tx_data_10 (.di_ibo(tx_data_10), .do_ibo(r_tx_data_10));
+can_ibo i_ibo_tx_data_11 (.di_ibo(tx_data_11), .do_ibo(r_tx_data_11));
+can_ibo i_ibo_tx_data_12 (.di_ibo(tx_data_12), .do_ibo(r_tx_data_12));
 
 /* Changing bit order from [14:0] to [0:14] */
-can_ibo i_calculated_crc0 (.di(calculated_crc[14:7]), .do(r_calculated_crc[7:0]));
-can_ibo i_calculated_crc1 (.di({calculated_crc[6:0], 1'b0}), .do(r_calculated_crc[15:8]));
+can_ibo i_calculated_crc0 (.di_ibo(calculated_crc[14:7]), .do_ibo(r_calculated_crc[7:0]));
+can_ibo i_calculated_crc1 (.di_ibo({calculated_crc[6:0], 1'b0}), .do_ibo(r_calculated_crc[15:8]));
 
 
 assign basic_chain = {r_tx_data_1[7:4], 2'h0, r_tx_data_1[3:0], r_tx_data_0[7:0], 1'b0};
