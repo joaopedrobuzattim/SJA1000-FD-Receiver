@@ -3,8 +3,8 @@
 	Use can_top_raw with appropriate interface (can_ifc_*).
 */
 
-`include "timescale.v"
-`include "can_defines.v"
+`include "timescale.sv"
+`include "can_defines.sv"
 
 module can_top
 (

@@ -166,9 +166,9 @@
 //
 
 // synopsys translate_off
-`include "timescale.v"
+`include "timescale.sv"
 // synopsys translate_on
-`include "can_defines.v"
+`include "can_defines.sv"
 
 module can_registers
 (

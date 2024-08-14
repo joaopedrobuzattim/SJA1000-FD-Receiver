@@ -1,8 +1,8 @@
 // synopsys translate_off
-`include "timescale.v"
+`include "timescale.sv"
 // synopsys translate_on
-`include "can_defines.v"
-`include "can_testbench_defines.v"
+`include "can_defines.sv"
+`include "can_testbench_defines.sv"
 
 module can_testbench();
 
@@ -129,7 +129,7 @@ initial begin
     $dumpvars;
 end
 
-`include "can_testbench_tests.v" 
+`include "can_testbench_tests.sv" 
 
 // Generate clock signal 25 MHz
 // Generate clock signal 16 MHz

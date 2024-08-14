@@ -229,9 +229,9 @@
 //
 
 // synopsys translate_off
-`include "timescale.v"
+`include "timescale.sv"
 // synopsys translate_on
-`include "can_defines.v"
+`include "can_defines.sv"
 
 
 
@@ -732,11 +732,6 @@ assign last_bit_of_inter = rx_inter & (bit_cnt[1:0] == 2'd2);
 assign not_first_bit_of_inter = rx_inter & (bit_cnt[1:0] != 2'd0);
 
 
-//Criando registradores de currentState/nextState para facilitar visualizacao do Frame
-
-
-
-
 
 assign go_rx_switch_br_o = go_rx_brs;
 assign switch_br_r_o = switch_br_r;
@@ -847,12 +842,12 @@ end
 // Rx idle state
 always @ (posedge clk or posedge rst)
 begin
-  if (rst)
+  if (rst) 
     rx_idle <= 1'b0;
-  else if (go_rx_id1 | go_error_frame)
+  else if (go_rx_id1 | go_error_frame) 
     rx_idle <=#Tp 1'b0;
-  else if (go_rx_idle)
-    rx_idle <=#Tp 1'b1;
+  else if (go_rx_idle) 
+    rx_idle <=#Tp 1'b1;  
 end
 
 
