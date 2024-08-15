@@ -2,6 +2,7 @@ xrun.*
 xcelium.*
 *.vcd
 *.svwf
+*.diag
 
 /testbench_xcelium/*.sv
 /testbench_icarus/*.sv

@@ -245,6 +245,9 @@ parameter Tp = 1;
 wire go_rx_skip_fdf;
 wire fdf_r;
 
+wire go_rx_brs_on;
+wire fdf_brs_r_on;
+
 wire rx_inter_btl;
 wire go_rx_inter_btl;
 
@@ -568,10 +571,10 @@ can_btl i_can_btl
   .go_error_frame(go_error_frame),
   .go_tx(go_tx),
   .send_ack(send_ack),
-  .node_error_passive(node_error_passive)
+  .node_error_passive(node_error_passive),
 
-
-
+  .fdf_brs_r_on(fdf_brs_r_on),
+  .go_rx_brs_on(go_rx_brs_on)
 );
 
 
@@ -596,6 +599,9 @@ can_bsp i_can_bsp
   .rx_sync_i(rx_sync),
   .go_rx_skip_fdf_o(go_rx_skip_fdf),
   .fdf_o(fdf_r),
+
+  .go_rx_brs_on_o(go_rx_brs_on),
+  .fdf_brs_on_o(fdf_brs_r_on),
 
   /* FD Data Bit Rate Register  */
   .en_FD_bit_rate_change(en_FD_bit_rate_change),

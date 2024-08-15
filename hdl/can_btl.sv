@@ -191,7 +191,10 @@ module can_btl
   go_error_frame,
   go_tx,
   send_ack,
-  node_error_passive
+  node_error_passive,
+
+  go_rx_brs_on,
+  fdf_brs_r_on
 );
 
 parameter Tp = 1;
@@ -229,6 +232,9 @@ input         go_tx;
 input         send_ack;
 input         node_error_passive;
 
+input         go_rx_brs_on;
+input         fdf_brs_r_on;
+
 /* Output signals from this module */
 output        sample_point;
 output        sampled_bit;
@@ -261,8 +267,18 @@ wire [7:0]    preset_cnt;
 wire          sync_window;
 wire          resync;
 
+reg   [5:0] baud_r_presc_value;
 
-assign preset_cnt = (baud_r_presc + 1'b1)<<1;        // (BRP+1)*2
+
+always @(*)
+begin
+  if (en_FD_bit_rate_change & (go_rx_brs_on | fdf_brs_r_on))
+    baud_r_presc_value =  (baud_r_presc + 1'b1) / (FD_BRP_multiplier + 1'b1);
+  else
+    baud_r_presc_value = (baud_r_presc+ 1'b1);
+end
+
+assign preset_cnt = (baud_r_presc_value)<<1;        // (BRP+1)*2
 assign hard_sync  =   (rx_idle | rx_inter)    & (~rx) & sampled_bit & (~hard_sync_blocked);  // Hard synchronization
 assign resync     =  (~rx_idle) & (~rx_inter) & (~rx) & sampled_bit & (~sync_blocked);       // Re-synchronization
 

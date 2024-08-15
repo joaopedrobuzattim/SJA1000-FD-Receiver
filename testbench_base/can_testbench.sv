@@ -10,7 +10,7 @@ module can_testbench();
 
 parameter Tp = 1;
 parameter BRP = 2*(`CAN_TIMING0_BRP + 1);
-parameter FDBRMUL = 1; // 4* faster that BRP
+parameter FDBRMUL = 4; // 4* faster that BRP
 
 
 reg         clk;

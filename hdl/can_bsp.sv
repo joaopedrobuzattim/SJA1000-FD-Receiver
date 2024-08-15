@@ -333,8 +333,8 @@ module can_bsp
   output wire        go_rx_skip_fdf_o,
   output wire        fdf_o,
 
-  output wire        go_rx_switch_br_o,
-  output wire        switch_br_o,
+  output wire        fdf_brs_on_o,
+  output wire        go_rx_brs_on_o,
 
 
   /* Mode register */
@@ -557,7 +557,7 @@ reg           first_compare_bit;
 reg           fdf_r;
 
 // Permanece dominante enquanto o frame FD estiver sendo transmitido com a Data Bit Rate
-reg           switch_br_r;
+reg           fdf_brs_r;
 
 /* Fall edge detected inside preceding bittime */
 wire          fd_fall_edge_lstbtm;
@@ -732,9 +732,8 @@ assign last_bit_of_inter = rx_inter & (bit_cnt[1:0] == 2'd2);
 assign not_first_bit_of_inter = rx_inter & (bit_cnt[1:0] != 2'd0);
 
 
-
-assign go_rx_switch_br_o = go_rx_brs;
-assign switch_br_r_o = switch_br_r;
+assign fdf_brs_on_o = fdf_brs_r;
+assign go_rx_brs_on_o = sample_point & rx_brs & (~bit_de_stuff) & sampled_bit;
 
 
 // FD Detection
@@ -756,11 +755,11 @@ assign go_rx_esi = rx_brs & sample_point & (~bit_de_stuff);
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
-    switch_br_r <= 1'b0;
+    fdf_brs_r <= 1'b0;
   else if (reset_mode | go_rx_inter | go_error_frame | go_rx_crc_lim )
-    switch_br_r <=#Tp 1'b0;
-  else if (go_rx_brs)
-    switch_br_r <=#Tp 1'b1;
+    fdf_brs_r <=#Tp 1'b0;
+  else if (go_rx_brs_on_o)
+    fdf_brs_r <=#Tp 1'b1;
 end
 
 assign go_rx_skip_fdf_o = go_rx_skip_fdf;
