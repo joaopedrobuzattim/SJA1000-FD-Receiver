@@ -2454,7 +2454,14 @@ begin
         else if (error_frame)
           currentState <= TRANSMITING_ERROR;
         else
-          currentState <= BRS;    
+          currentState <= BRS;
+      ESI:
+        if (rx_dlc)
+          currentState <= DLC;
+        else if (error_frame)
+          currentState <= TRANSMITING_ERROR;
+        else
+          currentState <= ESI;        
       DLC:
         if (rx_data)
           currentState <= DATA;

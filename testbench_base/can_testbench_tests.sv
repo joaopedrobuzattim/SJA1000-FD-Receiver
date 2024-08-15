@@ -1864,8 +1864,8 @@ task manual_fd_frame_basic_rcv;
     write_register2(8'd0, {7'h0, `CAN_MODE_RESET});
     repeat (50) @ (posedge clk);
 
-    write_register(8'd9, 8'h0);
-    write_register2(8'd9, 8'h0);
+    write_register(8'd9, 8'hff);
+    write_register2(8'd9, 8'hff);
 
     repeat (50) @ (posedge clk);
     write_register(8'd0, {7'h0, ~(`CAN_MODE_RESET)});
@@ -1903,11 +1903,13 @@ task manual_fd_frame_basic_rcv;
         send_bit(0);  // RTR
         send_bit(0);  // IDE
         send_bit(1);  // FD
-        send_bit(0);  // dominant r0 FD
-        send_bits(4, 4'b0111);             // DLC
-        repeat (10) send_fd_bits(6, 6'b111110);
-        // some invalid stuff, does not really matter
-        send_bits(15+2, 17'b11000001001011011); // CRC (with 2 stuff bits)
+        send_bit(0);  // r0 FD
+        send_bit(0);  // BRS
+        send_bit(0);  // ESI
+        send_bits(5, 5'b00101);             // DLC
+        send_bits(8, 8'b10101001); // Byte de Dados 1
+        // send_bits(15+1, 16'b1111000101111011); (gera erro de valro incorreto de CRC para DLC  1)
+        send_bits(15, 15'b100110110010110); // CRC 
         send_bit(1);  // CRC DELIM
         send_bit(0);  // ACK
         send_bit(1);  // ACK DELIM
