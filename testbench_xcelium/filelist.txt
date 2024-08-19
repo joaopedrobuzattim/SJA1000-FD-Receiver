@@ -19,3 +19,4 @@ can_register.sv
 can_testbench_defines.sv
 can_testbench.sv
 timescale.sv
+can_dlc_decoder.sv
