@@ -72,37 +72,78 @@
 `include "timescale.sv"
 // synopsys translate_on
 
-module can_crc (clk, data, enable, initialize, crc);
+module can_crc (clk, data, stuff_bit, enable, initialize, crc_15, crc_17, crc_21);
 
 
 parameter Tp = 1;
+parameter CRC15_POL = 15'hC599;
+parameter CRC17_POL = 17'h3685B;
+parameter CRC21_POL = 21'h302899;
 
 input         clk;
 input         data;
+input         stuff_bit;
 input         enable;
 input         initialize;
 
-output [14:0] crc;
+// CRC 15
+output [14:0] crc_15;
+reg    [14:0] crc_15_r;
+wire          crc_15_next;
+wire   [14:0] crc_15_tmp;
 
-reg    [14:0] crc;
+assign crc_15_next = data ^ crc_15[14];
+assign crc_15_tmp = crc_15<<1;
+assign crc_15 = crc_15_r;
 
-wire          crc_next;
-wire   [14:0] crc_tmp;
+// CRC 17
+output [16:0] crc_17;
+reg    [16:0] crc_17_r;
+wire          crc_17_next;
+wire   [16:0] crc_17_tmp;
 
+assign crc_17_next = data ^ crc_17[16];
+assign crc_17_tmp = crc_17<<1;
+assign crc_17 = crc_17_r;
 
-assign crc_next = data ^ crc[14];
-assign crc_tmp = {crc[13:0], 1'b0};
+// CRC 21
+output [20:0] crc_21;
+reg    [20:0] crc_21_r;
+wire          crc_21_next;
+wire   [20:0] crc_21_tmp;
+
+assign crc_21_next = data ^ crc_21[20];
+assign crc_21_tmp = crc_21<<1;
+assign crc_21 = crc_21_r;
 
 always @ (posedge clk)
 begin
-  if(initialize)
-    crc <= #Tp 15'h0;
-  else if (enable)
+  if(initialize) begin
+    crc_15_r <= #Tp 15'h0;
+    crc_17_r <= #Tp 17'h0;
+    crc_21_r <= #Tp 21'h0;
+  end else if (enable)
     begin
-      if (crc_next)
-        crc <= #Tp crc_tmp ^ 15'h4599;
-      else
-        crc <= #Tp crc_tmp;
+
+      // Bit stuffs não são utilizados no calculo do CRC de frames CAN Classico
+      if (crc_15_next & ~stuff_bit) begin
+        crc_15_r <= #Tp crc_15_tmp ^ CRC15_POL;
+      end else if (~crc_15_next & ~stuff_bit) begin
+        crc_15_r <= #Tp crc_15_tmp;
+      end
+
+      if (crc_17_next) begin
+        crc_17_r <= #Tp crc_17_tmp ^ CRC17_POL;
+      end else begin
+        crc_17_r <= #Tp crc_17_tmp;
+      end 
+
+      if (crc_21_next) begin
+        crc_21_r <= #Tp crc_21_tmp ^ CRC21_POL;
+      end else begin
+        crc_21_r <= #Tp crc_21_tmp;
+      end
+
     end
 end
 

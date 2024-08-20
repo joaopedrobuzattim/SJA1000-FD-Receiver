@@ -493,7 +493,9 @@ reg           ide;
 reg           brs;
 reg           esi;
 reg           rtr2;
-reg    [14:0] crc_in;
+reg    [14:0] crc_in_15;
+reg    [16:0] crc_in_17;
+reg    [20:0] crc_in_21;
 
 reg     [7:0] tmp_data;
 reg     [7:0] tmp_fifo [0:7];
@@ -616,6 +618,9 @@ wire          bit_de_stuff_reset;
 wire          go_early_tx;
 
 wire   [14:0] calculated_crc;
+wire   [14:0] calculated_crc_15;
+wire   [16:0] calculated_crc_17;
+wire   [20:0] calculated_crc_21;
 wire   [15:0] r_calculated_crc;
 wire          remote_rq;
 
@@ -702,7 +707,11 @@ assign go_rx_crc = (~bit_de_stuff) & sample_point & (
                    );  // overflow works ok at max value (8<<3 = 64 = 0). 0-1 = 6'h3f
 
 
-assign go_rx_crc_lim  = (~bit_de_stuff) & sample_point &  rx_crc  & (bit_cnt[3:0] == 4'd14);
+assign go_rx_crc_lim  = (~bit_de_stuff) & sample_point &  rx_crc  &  ( ( ~fdf_brs_r & (bit_cnt[3:0] == 4'd14) ) | 
+                                                                       (  fdf_brs_r & data_len <= 7'd16 & (bit_cnt[4:0] == 5'd16) ) |
+                                                                       (  fdf_brs_r & data_len  > 7'd16 & (bit_cnt[4:0] == 5'd20) )  
+                                                                     );
+
 assign go_rx_ack      = (~bit_de_stuff) & sample_point &  rx_crc_lim;
 assign go_rx_ack_lim  =                   sample_point &  rx_ack;
 assign go_rx_eof      =                   sample_point &  rx_ack_lim;
@@ -1225,10 +1234,16 @@ end
 // CRC
 always @ (posedge clk or posedge rst)
 begin
-  if (rst)
-    crc_in <= 15'h0;
-  else if (sample_point & rx_crc & (~bit_de_stuff))
-    crc_in <=#Tp {crc_in[13:0], sampled_bit};
+  if (rst) begin
+    crc_in_15 <= 15'h0;
+    crc_in_17 <= 17'h0;
+    crc_in_21 <= 21'h0;
+  end
+  else if (sample_point & rx_crc & (~bit_de_stuff)) begin
+    crc_in_15 <=#Tp {crc_in_15[13:0], sampled_bit};
+    crc_in_17 <=#Tp {crc_in_17[15:0], sampled_bit};
+    crc_in_21 <=#Tp {crc_in_21[19:0], sampled_bit};
+  end
 end
 
 
@@ -1362,9 +1377,12 @@ begin
     crc_err <=#Tp 1'b0;
   else if (reset_mode | error_frame_ended)
     crc_err <=#Tp 1'b0;
-  else if (go_rx_ack)
-    crc_err <=#Tp 1'b0; 
-    //crc_err <=#Tp crc_in != calculated_crc;
+  else if (go_rx_ack & ~fdf_on_r)
+    crc_err <=#Tp crc_in_15 != calculated_crc_15;
+  else if (go_rx_ack & fdf_on_r & data_len <= 7'd16)
+    crc_err <=#Tp crc_in_17 != calculated_crc_17;
+  else if (go_rx_ack & fdf_on_r & data_len > 7'd16)
+    crc_err <=#Tp crc_in_21 != calculated_crc_21;
 end
 
 
@@ -1466,13 +1484,16 @@ can_crc i_can_crc_rx
 (
   .clk(clk),
   .data(sampled_bit),
+  .stuff_bit(bit_de_stuff),
   .enable(crc_enable & sample_point & (~bit_de_stuff)),
   .initialize(go_crc_enable),
-  .crc(calculated_crc)
+  .crc_15(calculated_crc_15),
+  .crc_17(calculated_crc_17),
+  .crc_21(calculated_crc_21)
 );
 
 
-
+assign calculated_crc = calculated_crc_15;
 
 assign no_byte0 = rtr1 | (data_len<7'h1);
 assign no_byte1 = rtr1 | (data_len<7'h2);

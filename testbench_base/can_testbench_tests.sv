@@ -1906,7 +1906,7 @@ task manual_fd_frame_basic_rcv;
         send_bit(0);  // r0 FD
         send_bit(1);  // BRS
         send_fd_bit(0);  // ESI
-        send_fd_bits(4, 4'b1001);             // DLC
+        send_fd_bits(4, 4'b1011);             // DLC
         send_fd_bits(8, 8'b10101001); // Byte de Dados 1
         send_fd_bits(8, 8'b10101001); // Byte de Dados 2
         send_fd_bits(8, 8'b10101001); // Byte de Dados 3
@@ -1919,8 +1919,16 @@ task manual_fd_frame_basic_rcv;
         send_fd_bits(8, 8'b10101001); // Byte de Dados 10
         send_fd_bits(8, 8'b10101001); // Byte de Dados 11
         send_fd_bits(8, 8'b10101001); // Byte de Dados 12
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 13
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 14
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 15
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 16
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 17
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 18
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 19
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 20
         // send_bits(15+1, 16'b1111000101111011); (gera erro de valro incorreto de CRC para DLC  1)
-        send_fd_bits(15, 15'b100110110010110); // CRC 
+        send_fd_bits(22, 22'b1001000001110011101101); // CRC (with stuff bit)
         send_fd_bit(1);  // CRC DELIM
         send_bit(0);  // ACK
         send_bit(1);  // ACK DELIM
