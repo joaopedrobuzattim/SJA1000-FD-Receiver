@@ -617,7 +617,7 @@ wire          bit_de_stuff_reset;
 
 wire          go_early_tx;
 
-wire   [14:0] calculated_crc;
+wire   [14:0] calculated_crc_tx;
 wire   [14:0] calculated_crc_15;
 wire   [16:0] calculated_crc_17;
 wire   [20:0] calculated_crc_21;
@@ -1493,7 +1493,8 @@ can_crc i_can_crc_rx
 );
 
 
-assign calculated_crc = calculated_crc_15;
+// Somente frames CAN clássicos são transmitidos
+assign calculated_crc_tx = calculated_crc_15;
 
 assign no_byte0 = rtr1 | (data_len<7'h1);
 assign no_byte1 = rtr1 | (data_len<7'h2);
@@ -1924,8 +1925,8 @@ can_ibo i_ibo_tx_data_11 (.di_ibo(tx_data_11), .do_ibo(r_tx_data_11));
 can_ibo i_ibo_tx_data_12 (.di_ibo(tx_data_12), .do_ibo(r_tx_data_12));
 
 /* Changing bit order from [14:0] to [0:14] */
-can_ibo i_calculated_crc0 (.di_ibo(calculated_crc[14:7]), .do_ibo(r_calculated_crc[7:0]));
-can_ibo i_calculated_crc1 (.di_ibo({calculated_crc[6:0], 1'b0}), .do_ibo(r_calculated_crc[15:8]));
+can_ibo i_calculated_crc0 (.di_ibo(calculated_crc_tx[14:7]), .do_ibo(r_calculated_crc[7:0]));
+can_ibo i_calculated_crc1 (.di_ibo({calculated_crc_tx[6:0], 1'b0}), .do_ibo(r_calculated_crc[15:8]));
 
 
 assign basic_chain = {r_tx_data_1[7:4], 2'h0, r_tx_data_1[3:0], r_tx_data_0[7:0], 1'b0};
