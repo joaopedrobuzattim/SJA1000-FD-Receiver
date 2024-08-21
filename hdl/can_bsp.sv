@@ -463,6 +463,7 @@ reg     [8:0] bit_cnt; // FD Frames ( 512 bits  contagem maxima para o campo de 
 
 wire    [6:0] data_len;
 reg     [3:0] data_len_code;
+reg     [6:0] data_len_l;
 
 reg    [28:0] id;
 reg     [2:0] bit_stuff_cnt;
@@ -498,9 +499,9 @@ reg    [16:0] crc_in_17;
 reg    [20:0] crc_in_21;
 
 reg     [7:0] tmp_data;
-reg     [7:0] tmp_fifo [0:7];
+reg     [7:0] tmp_fifo [0:63];
 reg           write_data_to_tmp_fifo;
-reg     [2:0] byte_cnt;
+reg     [6:0] byte_cnt;
 reg           bit_stuff_cnt_en;
 reg           crc_enable;
 
@@ -526,7 +527,7 @@ reg     [4:0] arbitration_cnt;
 reg           arbitration_blocked;
 reg           tx_q;
 
-reg     [3:0] data_cnt;     // Counting the data bytes that are written to FIFO
+reg     [6:0] data_cnt;     // Counting the data bytes that are written to FIFO
 reg     [2:0] header_cnt;   // Counting header length
 reg           wr_fifo;      // Write data and header to 64-byte fifo
 reg     [7:0] data_for_fifo;// Multiplexed data that is stored to 64-byte fifo
@@ -638,7 +639,7 @@ wire          no_byte1;             // There is no byte 1 (RTR bit set to 1 or D
 
 wire    [2:0] header_len;
 wire          storing_header;
-wire    [3:0] limited_data_len_minus1;
+wire    [6:0] limited_data_len_minus1;
 wire          reset_wr_fifo;
 wire          err;
 
@@ -708,8 +709,8 @@ assign go_rx_crc = (~bit_de_stuff) & sample_point & (
 
 
 assign go_rx_crc_lim  = (~bit_de_stuff) & sample_point &  rx_crc  &  ( ( ~fdf_brs_r & (bit_cnt[3:0] == 4'd14) ) | 
-                                                                       (  fdf_brs_r & data_len <= 7'd16 & (bit_cnt[4:0] == 5'd16) ) |
-                                                                       (  fdf_brs_r & data_len  > 7'd16 & (bit_cnt[4:0] == 5'd20) )  
+                                                                       (  fdf_brs_r & data_len_l <= 7'd16 & (bit_cnt[4:0] == 5'd16) ) |
+                                                                       (  fdf_brs_r & data_len_l  > 7'd16 & (bit_cnt[4:0] == 5'd20) )  
                                                                      );
 
 assign go_rx_ack      = (~bit_de_stuff) & sample_point &  rx_crc_lim;
@@ -803,6 +804,12 @@ can_dlc_decoder i_can_dlc_decoder(
   .fd_frame_in(fdf_on_r)
 );
 
+// Armazenando o dlc decodificado em um Latch para não perder o valor ao escrever dados de frames FD na FIFO
+always_latch begin
+    if (rx_dlc | rx_data | rx_crc)
+        data_len_l = data_len;
+end
+ 
 assign go_rx_skip_fdf_o = go_rx_skip_fdf;
 assign fdf_o = fdf_r;
 
@@ -1215,11 +1222,11 @@ end
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
-    byte_cnt <= 3'h0;
+    byte_cnt <= 7'h0;
   else if (write_data_to_tmp_fifo)
     byte_cnt <=#Tp byte_cnt + 1'b1;
   else if (sample_point & go_rx_crc_lim)
-    byte_cnt <=#Tp 3'h0;
+    byte_cnt <=#Tp 7'h0;
 end
 
 
@@ -1379,9 +1386,9 @@ begin
     crc_err <=#Tp 1'b0;
   else if (go_rx_ack & ~fdf_on_r)
     crc_err <=#Tp crc_in_15 != calculated_crc_15;
-  else if (go_rx_ack & fdf_on_r & data_len <= 7'd16)
+  else if (go_rx_ack & fdf_on_r & data_len_l <= 7'd16)
     crc_err <=#Tp crc_in_17 != calculated_crc_17;
-  else if (go_rx_ack & fdf_on_r & data_len > 7'd16)
+  else if (go_rx_ack & fdf_on_r & data_len_l > 7'd16)
     crc_err <=#Tp crc_in_21 != calculated_crc_21;
 end
 
@@ -1496,8 +1503,8 @@ can_crc i_can_crc_rx
 // Somente frames CAN clássicos são transmitidos
 assign calculated_crc_tx = calculated_crc_15;
 
-assign no_byte0 = rtr1 | (data_len<7'h1);
-assign no_byte1 = rtr1 | (data_len<7'h2);
+assign no_byte0 = rtr1 | (data_len_l<7'h1);
+assign no_byte1 = rtr1 | (data_len_l<7'h2);
 
 assign go_rx_inter_acf = FD_tolerant ? (go_rx_inter & (~fdf_r)) : go_rx_inter;
 assign go_error_frame_acf = FD_tolerant ? (go_error_frame | go_rx_skip_fdf) : go_error_frame;
@@ -1558,8 +1565,10 @@ can_acf i_can_acf
 
 assign header_len[2:0] = extended_mode ? (ide? (3'h5) : (3'h3)) : 3'h2;
 assign storing_header = header_cnt < header_len;
-assign limited_data_len_minus1[3:0] = remote_rq? 4'hf : ((data_len < 4'h8)? (data_len -1'b1) : 4'h7);   // - 1 because counter counts from 0
-assign reset_wr_fifo = (data_cnt == (limited_data_len_minus1 + {1'b0, header_len})) || reset_mode;
+
+assign limited_data_len_minus1[6:0] = remote_rq ? 7'hf : (data_len_l -1'b1);   // - 1 because counter counts from 0
+
+assign reset_wr_fifo = (data_cnt == (limited_data_len_minus1 + {4'b0, header_len})) || reset_mode;
 
 assign err = form_err | stuff_err | bit_err | ack_err | form_err_latched | stuff_err_latched | bit_err_latched | ack_err_latched | crc_err;
 
@@ -1595,32 +1604,29 @@ end
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
-    data_cnt <= 4'h0;
+    data_cnt <= 7'h0;
   else if (reset_wr_fifo)
-    data_cnt <=#Tp 4'h0;
+    data_cnt <=#Tp 7'h0;
   else if (wr_fifo)
-    data_cnt <=#Tp data_cnt + 4'h1;
+    data_cnt <=#Tp data_cnt + 7'h1;
 end
 
 
 // Multiplexing data that is stored to 64-byte fifo depends on the mode of operation and frame format
-always @ (extended_mode or ide or data_cnt or header_cnt or  header_len or
-          storing_header or id or rtr1 or rtr2 or data_len or
-          tmp_fifo[0] or tmp_fifo[2] or tmp_fifo[4] or tmp_fifo[6] or
-          tmp_fifo[1] or tmp_fifo[3] or tmp_fifo[5] or tmp_fifo[7])
+always_comb
 begin
   casex ({storing_header, extended_mode, ide, header_cnt}) /* synthesis parallel_case */
-    6'b1_1_1_000  : data_for_fifo = {1'b1, rtr2, 2'h0, data_len};  // extended mode, extended format header
+    6'b1_1_1_000  : data_for_fifo = {1'b1, rtr2, 2'h0, data_len_code};  // extended mode, extended format header
     6'b1_1_1_001  : data_for_fifo = id[28:21];                     // extended mode, extended format header
     6'b1_1_1_010  : data_for_fifo = id[20:13];                     // extended mode, extended format header
     6'b1_1_1_011  : data_for_fifo = id[12:5];                      // extended mode, extended format header
     6'b1_1_1_100  : data_for_fifo = {id[4:0], 3'h0};               // extended mode, extended format header
-    6'b1_1_0_000  : data_for_fifo = {1'b0, rtr1, 2'h0, data_len};  // extended mode, standard format header
+    6'b1_1_0_000  : data_for_fifo = {1'b0, rtr1, 2'h0, data_len_code};  // extended mode, standard format header
     6'b1_1_0_001  : data_for_fifo = id[10:3];                      // extended mode, standard format header
     6'b1_1_0_010  : data_for_fifo = {id[2:0], rtr1, 4'h0};         // extended mode, standard format header
     6'b1_0_x_000  : data_for_fifo = id[10:3];                      // normal mode                    header
-    6'b1_0_x_001  : data_for_fifo = {id[2:0], rtr1, data_len};     // normal mode                    header
-    default       : data_for_fifo = tmp_fifo[data_cnt - {1'b0, header_len}]; // data
+    6'b1_0_x_001  : data_for_fifo = {id[2:0], rtr1, data_len_code};     // normal mode                    header
+    default       : data_for_fifo = tmp_fifo[data_cnt - {4'b0, header_len}]; // data
   endcase
 end
 
