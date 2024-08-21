@@ -761,9 +761,12 @@ begin
   if (can_testbench.i_can_top.i_can_bsp.rx_ack       &
       can_testbench.i_can_top.i_can_bsp.sample_point & 
       can_testbench.i_can_top.i_can_bsp.crc_err
-     )
-    $display("*E (%0t) ERROR: CRC error (Calculated crc = 0x%0x, crc_in = 0x%0x)", $time, can_testbench.i_can_top.i_can_bsp.calculated_crc, can_testbench.i_can_top.i_can_bsp.crc_in);
-end
+  ) begin
+    $display("*E (%0t) ERROR: CRC error (Calculated crc_15 = 0x%0x, crc_15_in = 0x%0x)", $time, can_testbench.i_can_top.i_can_bsp.calculated_crc_15, can_testbench.i_can_top.i_can_bsp.crc_in_15);
+    $display("*E (%0t) ERROR: CRC error (Calculated crc_17 = 0x%0x, crc_17_in = 0x%0x)", $time, can_testbench.i_can_top.i_can_bsp.calculated_crc_17, can_testbench.i_can_top.i_can_bsp.crc_in_17);
+    $display("*E (%0t) ERROR: CRC error (Calculated crc_21 = 0x%0x, crc_21_in = 0x%0x)", $time, can_testbench.i_can_top.i_can_bsp.calculated_crc_21, can_testbench.i_can_top.i_can_bsp.crc_in_21);
+  end
+end 
 //------------------------------------------------------------------------------
 
 /*

@@ -459,9 +459,11 @@ module can_bsp
 parameter Tp = 1;
 
 reg           reset_mode_q;
-reg     [5:0] bit_cnt;
+reg     [8:0] bit_cnt; // FD Frames ( 512 bits  contagem maxima para o campo de DATA)
 
-reg     [3:0] data_len;
+wire    [6:0] data_len;
+reg     [3:0] data_len_code;
+
 reg    [28:0] id;
 reg     [2:0] bit_stuff_cnt;
 reg     [2:0] bit_stuff_cnt_tx;
@@ -491,7 +493,9 @@ reg           ide;
 reg           brs;
 reg           esi;
 reg           rtr2;
-reg    [14:0] crc_in;
+reg    [14:0] crc_in_15;
+reg    [16:0] crc_in_17;
+reg    [20:0] crc_in_21;
 
 reg     [7:0] tmp_data;
 reg     [7:0] tmp_fifo [0:7];
@@ -559,6 +563,9 @@ reg           fdf_r;
 // Permanece dominante enquanto o frame FD estiver sendo transmitido com a Data Bit Rate
 reg           fdf_brs_r;
 
+// Permanece dominante enquanto o frame FD estiver sendo transmitido
+reg           fdf_on_r;
+
 /* Fall edge detected inside preceding bittime */
 wire          fd_fall_edge_lstbtm;
 
@@ -610,10 +617,13 @@ wire          bit_de_stuff_reset;
 
 wire          go_early_tx;
 
-wire   [14:0] calculated_crc;
+wire   [14:0] calculated_crc_tx;
+wire   [14:0] calculated_crc_15;
+wire   [16:0] calculated_crc_17;
+wire   [20:0] calculated_crc_21;
 wire   [15:0] r_calculated_crc;
 wire          remote_rq;
-wire    [3:0] limited_data_len;
+
 wire          form_err;
 
 wire          error_frame_ended;
@@ -685,10 +695,23 @@ assign go_rx_r0       = (~bit_de_stuff) & sample_point & (rx_ide  & (~sampled_bi
 
 assign go_rx_dlc = FD_tolerant ? ( (~bit_de_stuff) & sample_point &  rx_r0 & (~go_rx_skip_fdf) ) : ( ((~bit_de_stuff) & sample_point &  rx_r0 & (~fdf_detected) ) |  ((~bit_de_stuff) & sample_point &  rx_esi ) );
 
-assign go_rx_data     = (~bit_de_stuff) & sample_point &  rx_dlc  & (bit_cnt[1:0] == 2'd3) &  (sampled_bit   |   (|data_len[2:0])) & (~remote_rq);
-assign go_rx_crc      = (~bit_de_stuff) & sample_point & (rx_dlc  & (bit_cnt[1:0] == 2'd3) & ((~sampled_bit) & (~(|data_len[2:0])) | remote_rq) |
-                                                          rx_data & (bit_cnt[5:0] == ((limited_data_len<<3) - 1'b1)));  // overflow works ok at max value (8<<3 = 64 = 0). 0-1 = 6'h3f
-assign go_rx_crc_lim  = (~bit_de_stuff) & sample_point &  rx_crc  & (bit_cnt[3:0] == 4'd14);
+assign go_rx_data     = (~bit_de_stuff) & sample_point &  rx_dlc  & (bit_cnt[1:0] == 2'd3) & (~remote_rq);
+
+// Condicao para entrar no estado de CRC:
+// Estar no estado DLC e o valor do campo DLC ser Zero ou ser uma remote request
+// Ou estar no estado DATA e o valor de Bit Count for igual ao valor do campo DLC
+assign go_rx_crc = (~bit_de_stuff) & sample_point & (
+                    (rx_dlc & (bit_cnt[1:0] == 2'd3)) &
+                    ((~sampled_bit) & (~(|data_len[2:0])) | remote_rq)
+                    | (rx_data & (bit_cnt[8:0] == ((data_len<<3) - 1'b1)))
+                   );  // overflow works ok at max value (8<<3 = 64 = 0). 0-1 = 6'h3f
+
+
+assign go_rx_crc_lim  = (~bit_de_stuff) & sample_point &  rx_crc  &  ( ( ~fdf_brs_r & (bit_cnt[3:0] == 4'd14) ) | 
+                                                                       (  fdf_brs_r & data_len <= 7'd16 & (bit_cnt[4:0] == 5'd16) ) |
+                                                                       (  fdf_brs_r & data_len  > 7'd16 & (bit_cnt[4:0] == 5'd20) )  
+                                                                     );
+
 assign go_rx_ack      = (~bit_de_stuff) & sample_point &  rx_crc_lim;
 assign go_rx_ack_lim  =                   sample_point &  rx_ack;
 assign go_rx_eof      =                   sample_point &  rx_ack_lim;
@@ -715,7 +738,6 @@ assign bit_de_stuff_set   = go_rx_id1 & (~go_error_frame);
 assign bit_de_stuff_reset = FD_tolerant ? (go_rx_ack | go_error_frame | go_overload_frame | go_rx_skip_fdf) : (go_rx_ack | go_error_frame | go_overload_frame);
 
 assign remote_rq = ((~ide) & rtr1) | (ide & rtr2);
-assign limited_data_len = (data_len < 4'h8)? data_len : 4'h8;
 
 assign ack_err = rx_ack & sample_point & sampled_bit & tx_state & (~self_test_mode);
 assign bit_err = (tx_state | error_frame | overload_frame | rx_ack) & sample_point & (tx != sampled_bit) & (~bit_err_exc1) & (~bit_err_exc2) & (~bit_err_exc3) & (~bit_err_exc4) & (~bit_err_exc5) & (~bit_err_exc6) & (~reset_mode);
@@ -751,16 +773,35 @@ assign go_rx_brs = sample_point & (~bit_de_stuff) & rx_r0_fd;
 assign go_rx_esi = rx_brs & sample_point & (~bit_de_stuff);
 
 
-// Permanece alto enquanto o frame FD estiver sendo transmitido com a Data Bit Rate
+// Permanece recessivo enquanto o frame FD estiver sendo transmitido com a Data Bit Rate
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
     fdf_brs_r <= 1'b0;
-  else if (reset_mode | go_rx_inter | go_error_frame | go_rx_crc_lim )
+  else if (reset_mode | go_rx_inter | go_error_frame | go_rx_ack )
     fdf_brs_r <=#Tp 1'b0;
   else if (go_rx_brs_on_o)
     fdf_brs_r <=#Tp 1'b1;
 end
+
+// Permanece recessivo enquanto o frame FD estiver sendo transmitido
+always @ (posedge clk or posedge rst)
+begin
+  if (rst)
+    fdf_on_r <= 1'b0;
+  else if (reset_mode | go_rx_inter | go_error_frame)
+    fdf_on_r <=#Tp 1'b0;
+  else if (fdf_detected)
+    fdf_on_r <=#Tp 1'b1;
+end
+
+
+// Decodifica o valor do campo DLC
+can_dlc_decoder i_can_dlc_decoder(
+  .data_len_in(data_len_code),
+  .data_len_out(data_len),
+  .fd_frame_in(fdf_on_r)
+);
 
 assign go_rx_skip_fdf_o = go_rx_skip_fdf;
 assign fdf_o = fdf_r;
@@ -1144,9 +1185,9 @@ end
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
-    data_len <= 4'b0;
+    data_len_code <= 4'b0;
   else if (sample_point & rx_dlc & (~bit_de_stuff))
-    data_len <=#Tp {data_len[2:0], sampled_bit};
+    data_len_code <=#Tp {data_len_code[2:0], sampled_bit};
 end
 
 
@@ -1193,14 +1234,20 @@ end
 // CRC
 always @ (posedge clk or posedge rst)
 begin
-  if (rst)
-    crc_in <= 15'h0;
-  else if (sample_point & rx_crc & (~bit_de_stuff))
-    crc_in <=#Tp {crc_in[13:0], sampled_bit};
+  if (rst) begin
+    crc_in_15 <= 15'h0;
+    crc_in_17 <= 17'h0;
+    crc_in_21 <= 21'h0;
+  end
+  else if (sample_point & rx_crc & (~bit_de_stuff)) begin
+    crc_in_15 <=#Tp {crc_in_15[13:0], sampled_bit};
+    crc_in_17 <=#Tp {crc_in_17[15:0], sampled_bit};
+    crc_in_21 <=#Tp {crc_in_21[19:0], sampled_bit};
+  end
 end
 
 
-// bit_cnt
+// bit_cnt (Conta os bits em cada estado da FSM, utilizado para contar estados que sao compostos de mais de um bit)
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
@@ -1330,9 +1377,12 @@ begin
     crc_err <=#Tp 1'b0;
   else if (reset_mode | error_frame_ended)
     crc_err <=#Tp 1'b0;
-  else if (go_rx_ack)
-    crc_err <=#Tp 1'b0; 
-    //crc_err <=#Tp crc_in != calculated_crc;
+  else if (go_rx_ack & ~fdf_on_r)
+    crc_err <=#Tp crc_in_15 != calculated_crc_15;
+  else if (go_rx_ack & fdf_on_r & data_len <= 7'd16)
+    crc_err <=#Tp crc_in_17 != calculated_crc_17;
+  else if (go_rx_ack & fdf_on_r & data_len > 7'd16)
+    crc_err <=#Tp crc_in_21 != calculated_crc_21;
 end
 
 
@@ -1434,16 +1484,20 @@ can_crc i_can_crc_rx
 (
   .clk(clk),
   .data(sampled_bit),
+  .stuff_bit(bit_de_stuff),
   .enable(crc_enable & sample_point & (~bit_de_stuff)),
   .initialize(go_crc_enable),
-  .crc(calculated_crc)
+  .crc_15(calculated_crc_15),
+  .crc_17(calculated_crc_17),
+  .crc_21(calculated_crc_21)
 );
 
 
+// Somente frames CAN clássicos são transmitidos
+assign calculated_crc_tx = calculated_crc_15;
 
-
-assign no_byte0 = rtr1 | (data_len<4'h1);
-assign no_byte1 = rtr1 | (data_len<4'h2);
+assign no_byte0 = rtr1 | (data_len<7'h1);
+assign no_byte1 = rtr1 | (data_len<7'h2);
 
 assign go_rx_inter_acf = FD_tolerant ? (go_rx_inter & (~fdf_r)) : go_rx_inter;
 assign go_error_frame_acf = FD_tolerant ? (go_error_frame | go_rx_skip_fdf) : go_error_frame;
@@ -1871,8 +1925,8 @@ can_ibo i_ibo_tx_data_11 (.di_ibo(tx_data_11), .do_ibo(r_tx_data_11));
 can_ibo i_ibo_tx_data_12 (.di_ibo(tx_data_12), .do_ibo(r_tx_data_12));
 
 /* Changing bit order from [14:0] to [0:14] */
-can_ibo i_calculated_crc0 (.di_ibo(calculated_crc[14:7]), .do_ibo(r_calculated_crc[7:0]));
-can_ibo i_calculated_crc1 (.di_ibo({calculated_crc[6:0], 1'b0}), .do_ibo(r_calculated_crc[15:8]));
+can_ibo i_calculated_crc0 (.di_ibo(calculated_crc_tx[14:7]), .do_ibo(r_calculated_crc[7:0]));
+can_ibo i_calculated_crc1 (.di_ibo({calculated_crc_tx[6:0], 1'b0}), .do_ibo(r_calculated_crc[15:8]));
 
 
 assign basic_chain = {r_tx_data_1[7:4], 2'h0, r_tx_data_1[3:0], r_tx_data_0[7:0], 1'b0};
