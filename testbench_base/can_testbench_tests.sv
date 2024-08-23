@@ -1867,6 +1867,20 @@ task manual_fd_frame_basic_rcv;
     write_register(8'd9, 8'h43);
     write_register2(8'd9, 8'h43);
 
+    // Set Clock Divider register
+    extended_mode = 1'b1;
+    write_register(8'd31, {extended_mode, 7'h0});    // Setting the extended mode
+    write_register2(8'd31, {extended_mode, 7'h0});    // Setting the extended mode
+
+    write_register(8'd20, 8'hff); // acceptance mask 0
+    write_register(8'd21, 8'hff); // acceptance mask 1
+    write_register(8'd22, 8'hff); // acceptance mask 2
+    write_register(8'd23, 8'hff); // acceptance mask 3
+    write_register2(8'd20, 8'hff); // acceptance mask 0
+    write_register2(8'd21, 8'hff); // acceptance mask 1
+    write_register2(8'd22, 8'hff); // acceptance mask 2
+    write_register2(8'd23, 8'hff); // acceptance mask 3
+
     repeat (50) @ (posedge clk);
     write_register(8'd0, {7'h0, ~(`CAN_MODE_RESET)});
     write_register2(8'd0, {7'h0, ~(`CAN_MODE_RESET)});
