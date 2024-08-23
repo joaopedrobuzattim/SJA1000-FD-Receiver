@@ -463,7 +463,6 @@ reg     [8:0] bit_cnt; // FD Frames ( 512 bits  contagem maxima para o campo de 
 
 wire    [6:0] data_len;
 reg     [3:0] data_len_code;
-reg     [6:0] data_len_l;
 
 reg    [28:0] id;
 reg     [2:0] bit_stuff_cnt;
@@ -493,6 +492,7 @@ reg           rtr1;
 reg           ide;
 reg           brs;
 reg           esi;
+reg           edl; 
 reg           rtr2;
 reg    [14:0] crc_in_15;
 reg    [16:0] crc_in_17;
@@ -563,9 +563,6 @@ reg           fdf_r;
 
 // Permanece dominante enquanto o frame FD estiver sendo transmitido com a Data Bit Rate
 reg           fdf_brs_r;
-
-// Permanece dominante enquanto o frame FD estiver sendo transmitido
-reg           fdf_on_r;
 
 /* Fall edge detected inside preceding bittime */
 wire          fd_fall_edge_lstbtm;
@@ -709,8 +706,8 @@ assign go_rx_crc = (~bit_de_stuff) & sample_point & (
 
 
 assign go_rx_crc_lim  = (~bit_de_stuff) & sample_point &  rx_crc  &  ( ( ~fdf_brs_r & (bit_cnt[3:0] == 4'd14) ) | 
-                                                                       (  fdf_brs_r & data_len_l <= 7'd16 & (bit_cnt[4:0] == 5'd16) ) |
-                                                                       (  fdf_brs_r & data_len_l  > 7'd16 & (bit_cnt[4:0] == 5'd20) )  
+                                                                       (  fdf_brs_r & data_len <= 7'd16 & (bit_cnt[4:0] == 5'd16) ) |
+                                                                       (  fdf_brs_r & data_len  > 7'd16 & (bit_cnt[4:0] == 5'd20) )  
                                                                      );
 
 assign go_rx_ack      = (~bit_de_stuff) & sample_point &  rx_crc_lim;
@@ -785,30 +782,12 @@ begin
     fdf_brs_r <=#Tp 1'b1;
 end
 
-// Permanece recessivo enquanto o frame FD estiver sendo transmitido
-always @ (posedge clk or posedge rst)
-begin
-  if (rst)
-    fdf_on_r <= 1'b0;
-  else if (reset_mode | go_rx_inter | go_error_frame)
-    fdf_on_r <=#Tp 1'b0;
-  else if (fdf_detected)
-    fdf_on_r <=#Tp 1'b1;
-end
-
-
 // Decodifica o valor do campo DLC
 can_dlc_decoder i_can_dlc_decoder(
   .data_len_in(data_len_code),
   .data_len_out(data_len),
-  .fd_frame_in(fdf_on_r)
+  .fd_frame_in(edl)
 );
-
-// Armazenando o dlc decodificado em um Latch para não perder o valor ao escrever dados de frames FD na FIFO
-always_latch begin
-    if (rx_dlc | rx_data | rx_crc)
-        data_len_l = data_len;
-end
  
 assign go_rx_skip_fdf_o = go_rx_skip_fdf;
 assign fdf_o = fdf_r;
@@ -1169,11 +1148,24 @@ begin
     ide <=#Tp sampled_bit;
 end
 
+// edl bit (Apenas em frames FD)
+always @ (posedge clk or posedge rst)
+begin
+  if (rst)
+    edl <= 1'b0;
+  else if(rx_r0 & ~sampled_bit)
+    edl <= 1'b0; // Em caso de frames nao FD, o valor de edl nao sera gravado e, para isso, deve ser resetado.
+  else if (fdf_detected)
+    edl <=#Tp 1'b1;
+end
+
 // brs bit
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
     brs <= 1'b0;
+  else if(rx_r0)
+    brs <= 1'b0; // Em caso de frames nao FD, o valor de brs nao sera gravado e, para isso, deve ser resetado.
   else if (sample_point & rx_brs & (~bit_de_stuff))
     brs <=#Tp sampled_bit;
 end
@@ -1183,6 +1175,8 @@ always @ (posedge clk or posedge rst)
 begin
   if (rst)
     esi <= 1'b0;
+  else if(rx_r0)
+    esi <= 1'b0; // Em caso de frames nao FD, o valor de esi nao sera gravado e, para isso, deve ser resetado.
   else if (sample_point & rx_esi & (~bit_de_stuff))
     esi <=#Tp sampled_bit;
 end
@@ -1384,11 +1378,11 @@ begin
     crc_err <=#Tp 1'b0;
   else if (reset_mode | error_frame_ended)
     crc_err <=#Tp 1'b0;
-  else if (go_rx_ack & ~fdf_on_r)
+  else if (go_rx_ack & ~edl)
     crc_err <=#Tp crc_in_15 != calculated_crc_15;
-  else if (go_rx_ack & fdf_on_r & data_len_l <= 7'd16)
+  else if (go_rx_ack & edl & data_len <= 7'd16)
     crc_err <=#Tp crc_in_17 != calculated_crc_17;
-  else if (go_rx_ack & fdf_on_r & data_len_l > 7'd16)
+  else if (go_rx_ack & edl & data_len > 7'd16)
     crc_err <=#Tp crc_in_21 != calculated_crc_21;
 end
 
@@ -1503,8 +1497,8 @@ can_crc i_can_crc_rx
 // Somente frames CAN clássicos são transmitidos
 assign calculated_crc_tx = calculated_crc_15;
 
-assign no_byte0 = rtr1 | (data_len_l<7'h1);
-assign no_byte1 = rtr1 | (data_len_l<7'h2);
+assign no_byte0 = rtr1 | (data_len<7'h1);
+assign no_byte1 = rtr1 | (data_len<7'h2);
 
 assign go_rx_inter_acf = FD_tolerant ? (go_rx_inter & (~fdf_r)) : go_rx_inter;
 assign go_error_frame_acf = FD_tolerant ? (go_error_frame | go_rx_skip_fdf) : go_error_frame;
@@ -1566,7 +1560,7 @@ can_acf i_can_acf
 assign header_len[2:0] = extended_mode ? (ide? (3'h5) : (3'h3)) : 3'h2;
 assign storing_header = header_cnt < header_len;
 
-assign limited_data_len_minus1[6:0] = remote_rq ? 7'hf : (data_len_l -1'b1);   // - 1 because counter counts from 0
+assign limited_data_len_minus1[6:0] = remote_rq ? 7'hf : (data_len -1'b1);   // - 1 because counter counts from 0
 
 assign reset_wr_fifo = (data_cnt == (limited_data_len_minus1 + {4'b0, header_len})) || reset_mode;
 
@@ -1615,17 +1609,21 @@ end
 // Multiplexing data that is stored to 64-byte fifo depends on the mode of operation and frame format
 always_comb
 begin
-  casex ({storing_header, extended_mode, ide, header_cnt}) /* synthesis parallel_case */
-    6'b1_1_1_000  : data_for_fifo = {1'b1, rtr2, 2'h0, data_len_code};  // extended mode, extended format header
-    6'b1_1_1_001  : data_for_fifo = id[28:21];                     // extended mode, extended format header
-    6'b1_1_1_010  : data_for_fifo = id[20:13];                     // extended mode, extended format header
-    6'b1_1_1_011  : data_for_fifo = id[12:5];                      // extended mode, extended format header
-    6'b1_1_1_100  : data_for_fifo = {id[4:0], 3'h0};               // extended mode, extended format header
-    6'b1_1_0_000  : data_for_fifo = {1'b0, rtr1, 2'h0, data_len_code};  // extended mode, standard format header
-    6'b1_1_0_001  : data_for_fifo = id[10:3];                      // extended mode, standard format header
-    6'b1_1_0_010  : data_for_fifo = {id[2:0], rtr1, 4'h0};         // extended mode, standard format header
-    6'b1_0_x_000  : data_for_fifo = id[10:3];                      // normal mode                    header
-    6'b1_0_x_001  : data_for_fifo = {id[2:0], rtr1, data_len_code};     // normal mode                    header
+  casex ({storing_header, extended_mode, ide, header_cnt, edl}) /* synthesis parallel_case */
+    7'b1_1_1_000_0  : data_for_fifo = {1'b1, rtr2, 1'h0, 1'h0, data_len_code};  // extended mode, extended format header (non FD Frame)
+    7'b1_1_1_000_1  : data_for_fifo = {1'b1, rtr2, 1'h1, 1'h0, data_len_code};  // extended mode, extended format header (FD Frame)
+    7'b1_1_1_001_x  : data_for_fifo = id[28:21];                     // extended mode, extended format header
+    7'b1_1_1_010_x  : data_for_fifo = id[20:13];                     // extended mode, extended format header
+    7'b1_1_1_011_x  : data_for_fifo = id[12:5];                      // extended mode, extended format header
+    7'b1_1_1_100_x  : data_for_fifo = {id[4:0], 3'h0};               // extended mode, extended format header
+    7'b1_1_0_000_0  : data_for_fifo = {1'b0, rtr1, 1'b0, 1'h0, data_len_code};  // extended mode, standard format header (non FD Frame)
+    7'b1_1_0_000_1  : data_for_fifo = {1'b0, rtr1, 1'b1, 1'h0, data_len_code};  // extended mode, standard format header (FD Frame)
+    7'b1_1_0_001_x  : data_for_fifo = id[10:3];                      // extended mode, standard format header
+    7'b1_1_0_010_x  : data_for_fifo = {id[2:0], rtr1, 4'h0};         // extended mode, standard format header
+    7'b1_0_x_000_x  : data_for_fifo = id[10:3];                      // normal mode                    header
+    7'b1_0_x_001_x  : data_for_fifo = {id[2:0], rtr1, 4'h0};           // normal mode                    header
+    7'b1_0_x_001_0  : data_for_fifo = {1'b0, 3'h0, data_len_code};     // normal mode                    header (non FD Frame)
+    7'b1_0_x_001_1  : data_for_fifo = {1'b1, 3'h0, data_len_code};     // normal mode                    header (FD Frame) 
     default       : data_for_fifo = tmp_fifo[data_cnt - {4'b0, header_len}]; // data
   endcase
 end
