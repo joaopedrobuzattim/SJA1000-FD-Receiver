@@ -2,10 +2,13 @@ xrun.*
 xcelium.*
 *.vcd
 *.svwf
+*.gtkw
 *.diag
+*.vvp
 
 /testbench_xcelium/*.sv
 /testbench_icarus/*.sv
+/testbench_icarus/test
 
 waves.shm/
 xcelium.d/
