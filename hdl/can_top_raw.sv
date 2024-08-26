@@ -221,6 +221,8 @@ module can_top_raw
   input  wire [7:0] reg_addr_write_i,
   input  wire [7:0] reg_data_in,
   output reg  [7:0] reg_data_out,
+  input  wire [15:0] reg_data_in_16,
+  output reg  [15:0] reg_data_out_16,
 
   input  wire         clk_i,
   input  wire         rx_i,
@@ -261,6 +263,7 @@ reg          data_out_fifo_selected;
 
 wire   [7:0] data_out_fifo;
 wire   [7:0] data_out_regs;
+wire   [15:0] data_out_regs_16;
 
 
 /* Mode register */
@@ -413,7 +416,9 @@ can_registers i_can_registers
   .addr_read(addr_read),
   .addr_write(addr_write),
   .data_in(reg_data_in),
+  .data_in_16(reg_data_in_16),
   .data_out(data_out_regs),
+  .data_out_16(data_out_regs_16),
   .irq_n(irq_on),
 
   .sample_point(sample_point),
@@ -739,10 +744,13 @@ always @ (posedge clk_i)
 begin
   if (cs & re)
     begin
-      if (data_out_fifo_selected)
+      if (data_out_fifo_selected) begin
         reg_data_out <=#Tp data_out_fifo;
-      else
+        reg_data_out_16 <= 16'b0;
+      end else begin
         reg_data_out <=#Tp data_out_regs;
+        reg_data_out_16 <=#Tp data_out_regs_16;
+      end
     end
 end
 

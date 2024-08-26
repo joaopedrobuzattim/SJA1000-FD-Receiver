@@ -179,7 +179,9 @@ module can_registers
   addr_read,
   addr_write,
   data_in,
+  data_in_16,
   data_out,
+  data_out_16,
   irq_n,
 
   sample_point,
@@ -232,11 +234,16 @@ module can_registers
   /* Bus Timing 0 register */
   baud_r_presc,
   sync_jump_width,
+  baud_r_presc_fd,
+  sync_jump_width_fd,
 
   /* Bus Timing 1 register */
   time_segment1,
   time_segment2,
   triple_sampling,
+  time_segment1_fd,
+  time_segment2_fd,
+  triple_sampling_fd,
 
   /* FD Data Bit Rate Register  */
   en_FD_bit_rate_change,
@@ -306,9 +313,12 @@ input         we;
 input   [7:0] addr_read;
 input   [7:0] addr_write;
 input   [7:0] data_in;
+input   [15:0] data_in_16;
 
 output  [7:0] data_out;
+output  [15:0] data_out_16;
 reg     [7:0] data_out;
+reg     [15:0] data_out_16;
 
 output        irq_n;
 
@@ -366,12 +376,17 @@ input   [7:0] error_capture_code;
 /* Bus Timing 0 register */
 output  [5:0] baud_r_presc;
 output  [1:0] sync_jump_width;
+output  [5:0] baud_r_presc_fd;
+output  [1:0] sync_jump_width_fd;
 
 
 /* Bus Timing 1 register */
 output  [3:0] time_segment1;
 output  [2:0] time_segment2;
 output        triple_sampling;
+output  [3:0] time_segment1_fd;
+output  [2:0] time_segment2_fd;
+output        triple_sampling_fd;
 
 /* Error Warning Limit register */
 output  [7:0] error_warning_limit;
@@ -774,10 +789,10 @@ assign receive_irq_en_ext           = irq_en_ext[0];
 /* End Bus Timing 0 register */
 
 
-/* Bus Timing 0 register */
-wire   [7:0] bus_timing_0;
-can_register #(8) BUS_TIMING_0_REG
-( .data_in(data_in),
+/* Bus Timing 0 register (16-bit reg) */
+wire   [15:0] bus_timing_0;
+can_register #(16) BUS_TIMING_0_REG
+( .data_in(data_in_16),
   .data_out(bus_timing_0),
   .we(we_bus_timing_0),
   .clk(clk)
@@ -785,13 +800,15 @@ can_register #(8) BUS_TIMING_0_REG
 
 assign baud_r_presc = bus_timing_0[5:0];
 assign sync_jump_width = bus_timing_0[7:6];
+assign baud_r_presc_fd = bus_timing_0[13:8];
+assign sync_jump_width_fd = bus_timing_0[15:14];
 /* End Bus Timing 0 register */
 
 
-/* Bus Timing 1 register */
-wire   [7:0] bus_timing_1;
-can_register #(8) BUS_TIMING_1_REG
-( .data_in(data_in),
+/* Bus Timing 1 register (16-bit reg) */
+wire   [15:0] bus_timing_1;
+can_register #(16) BUS_TIMING_1_REG
+( .data_in(data_in_16),
   .data_out(bus_timing_1),
   .we(we_bus_timing_1),
   .clk(clk)
@@ -800,6 +817,9 @@ can_register #(8) BUS_TIMING_1_REG
 assign time_segment1 = bus_timing_1[3:0];
 assign time_segment2 = bus_timing_1[6:4];
 assign triple_sampling = bus_timing_1[7];
+assign time_segment1_fd = bus_timing_1[11:8];
+assign time_segment2_fd = bus_timing_1[14:12];
+assign triple_sampling_fd = bus_timing_1[15];
 /* End Bus Timing 1 register */
 
 
@@ -1121,10 +1141,20 @@ can_register #(8) ACCEPTANCE_MASK_REG3
 
 /* End: This section is for EXTENDED mode */
 
+// Reading data from 16-bit registers 
+always @ (*)
+begin
+  case({extended_mode, addr_read[4:0]})                                    // synthesis parallel_case
+    {1'h1, 5'd06} :  data_out_16 = bus_timing_0;                           // extended mode
+    {1'h1, 5'd07} :  data_out_16 = bus_timing_1;                           // extended mode
+    {1'h0, 5'd06} :  data_out_16 = reset_mode? bus_timing_0 : 16'hff;      // basic mode
+    {1'h0, 5'd07} :  data_out_16 = reset_mode? bus_timing_1 : 16'hff;      // basic mode
+    default :  data_out_16 = 16'h0;                                        // the rest is read as 0
+  endcase
+end
 
 
-
-// Reading data from registers
+// Reading data from 8-bit registers 
 always @ (*)
 begin
   //data_out = addr_read; // DBG
@@ -1134,8 +1164,6 @@ begin
     {1'h1, 5'd02} :  data_out = status;                                 // extended mode
     {1'h1, 5'd03} :  data_out = irq_reg;                                // extended mode
     {1'h1, 5'd04} :  data_out = irq_en_ext;                             // extended mode
-    {1'h1, 5'd06} :  data_out = bus_timing_0;                           // extended mode
-    {1'h1, 5'd07} :  data_out = bus_timing_1;                           // extended mode
     {1'h1, 5'd09} :  data_out = fd_data_bit_rate_reg;                   // extended mode ( SJA1000 Test Register )
     {1'h1, 5'd11} :  data_out = {3'h0, arbitration_lost_capture[4:0]};  // extended mode
     {1'h1, 5'd12} :  data_out = error_capture_code;                     // extended mode
@@ -1163,8 +1191,6 @@ begin
     {1'h0, 5'd03} :  data_out = {4'he, irq_reg[3:0]};                   // basic mode
     {1'h0, 5'd04} :  data_out = reset_mode? acceptance_code_0 : 8'hff;  // basic mode
     {1'h0, 5'd05} :  data_out = reset_mode? acceptance_mask_0 : 8'hff;  // basic mode
-    {1'h0, 5'd06} :  data_out = reset_mode? bus_timing_0 : 8'hff;       // basic mode
-    {1'h0, 5'd07} :  data_out = reset_mode? bus_timing_1 : 8'hff;       // basic mode
     {1'h0, 5'd09} :  data_out = reset_mode? fd_data_bit_rate_reg : 8'hff;// extended mode ( SJA1000 Test Register )
     {1'h0, 5'd10} :  data_out = reset_mode? 8'hff : tx_data_0;          // basic mode
     {1'h0, 5'd11} :  data_out = reset_mode? 8'hff : tx_data_1;          // basic mode
