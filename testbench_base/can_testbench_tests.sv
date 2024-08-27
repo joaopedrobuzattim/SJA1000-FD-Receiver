@@ -1864,8 +1864,9 @@ task manual_fd_frame_basic_rcv;
     write_register2(8'd0, {7'h0, `CAN_MODE_RESET});
     repeat (50) @ (posedge clk);
 
-    write_register(8'd9, 8'h43);
-    write_register2(8'd9, 8'h43);
+    // Habilitando recepcao de frames FD
+    write_register(8'd9, 8'h0);
+    write_register2(8'd9, 8'h1);
 
     // Set Clock Divider register
     extended_mode = 1'b1;

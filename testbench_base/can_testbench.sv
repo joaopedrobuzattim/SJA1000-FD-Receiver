@@ -34,9 +34,9 @@ reg         extended_mode;
 event       igor;
 
 reg  [7:0] reg_data_in;
-reg  [7:0] reg_data_in_16;
+reg  [15:0] reg_data_in_16;
 wire [7:0] reg_data_out;
-wire [7:0] reg_data_out_16;
+wire [15:0] reg_data_out_16;
 reg  [7:0] reg_addr_read;
 reg  [7:0] reg_addr_write;
 
@@ -201,10 +201,11 @@ begin
   //write_register_impl(2'h3, 8'd31, 8'd64);
 
   // Set bus timing register 0
-  write_16_register_impl(2'h3, 8'd6, {8'h0 , `CAN_TIMING0_SJW, `CAN_TIMING0_BRP});
+  write_16_register_impl(2'h3, 8'd6, {`CAN_TIMING0_SJW_FD, `CAN_TIMING0_BRP_FD, `CAN_TIMING0_SJW, `CAN_TIMING0_BRP});
+
 
   // Set bus timing register 1
-  write_16_register_impl(2'h3, 8'd7, {8'h0 ,`CAN_TIMING1_SAM, `CAN_TIMING1_TSEG2, `CAN_TIMING1_TSEG1});
+  write_16_register_impl(2'h3, 8'd7, {`CAN_TIMING1_SAM_FD, `CAN_TIMING1_TSEG2_FD, `CAN_TIMING1_TSEG1_FD,`CAN_TIMING1_SAM, `CAN_TIMING1_TSEG2, `CAN_TIMING1_TSEG1});
  
 
   // Set Acceptance Code and Acceptance Mask registers (their address differs for basic and extended mode
