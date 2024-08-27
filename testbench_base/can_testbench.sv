@@ -34,12 +34,16 @@ reg         extended_mode;
 event       igor;
 
 reg  [7:0] reg_data_in;
+reg  [15:0] reg_data_in_16;
 wire [7:0] reg_data_out;
+wire [15:0] reg_data_out_16;
 reg  [7:0] reg_addr_read;
 reg  [7:0] reg_addr_write;
 
 wire [7:0] can1_reg_data_out;
 wire [7:0] can2_reg_data_out;
+wire [7:0] can1_reg_data_out_16;
+wire [7:0] can2_reg_data_out_16;
 
 reg        reg_rst;
 reg        reg_re;
@@ -47,6 +51,7 @@ reg        reg_we;
 reg  [1:0] reg_devmsk;
 
 assign reg_data_out = reg_devmsk[0] ? can1_reg_data_out : (reg_devmsk[1] ? can2_reg_data_out : 8'hzz);
+assign reg_data_out_16 = reg_devmsk[0] ? can1_reg_data_out_16 : (reg_devmsk[1] ? can2_reg_data_out_16 : 16'hzz);
 
 function irq;
 input [1:0] devmsk;
@@ -63,7 +68,9 @@ can_top_raw i_can_top
   .reg_we_i(reg_we & reg_devmsk[0]),
   .reg_re_i(reg_re & reg_devmsk[0]),
   .reg_data_in(reg_data_in),
+  .reg_data_in_16(reg_data_in_16),
   .reg_data_out(can1_reg_data_out),
+  .reg_data_out_16(can1_reg_data_out_16),
   .reg_addr_read_i(reg_addr_read),
   .reg_addr_write_i(reg_addr_write),
   .reg_rst_i(reg_rst),
@@ -92,7 +99,9 @@ can_top_raw i_can_top2
   .reg_we_i(reg_we && reg_devmsk[1]),
   .reg_re_i(reg_re && reg_devmsk[1]),
   .reg_data_in(reg_data_in),
+  .reg_data_in_16(reg_data_in_16),
   .reg_data_out(can2_reg_data_out),
+  .reg_data_out_16(can2_reg_data_out_16),
   .reg_addr_read_i(reg_addr_read),
   .reg_addr_write_i(reg_addr_write),
   .reg_rst_i(reg_rst),
@@ -149,6 +158,7 @@ begin
   reg_we = 1'b0;
   reg_devmsk = 1'bx;
   reg_data_in = 'hx;
+  reg_data_in_16 = 'hx;
   reg_addr_read = 'hx;
   reg_addr_write = 'hx;
   rx = 1;
@@ -191,10 +201,11 @@ begin
   //write_register_impl(2'h3, 8'd31, 8'd64);
 
   // Set bus timing register 0
-  write_register_impl(2'h3, 8'd6, {`CAN_TIMING0_SJW, `CAN_TIMING0_BRP});
+  write_16_register_impl(2'h3, 8'd6, {`CAN_TIMING0_SJW_FD, `CAN_TIMING0_BRP_FD, `CAN_TIMING0_SJW, `CAN_TIMING0_BRP});
+
 
   // Set bus timing register 1
-  write_register_impl(2'h3, 8'd7, {`CAN_TIMING1_SAM, `CAN_TIMING1_TSEG2, `CAN_TIMING1_TSEG1});
+  write_16_register_impl(2'h3, 8'd7, {`CAN_TIMING1_SAM_FD, `CAN_TIMING1_TSEG2_FD, `CAN_TIMING1_TSEG1_FD,`CAN_TIMING1_SAM, `CAN_TIMING1_TSEG2, `CAN_TIMING1_TSEG1});
  
 
   // Set Acceptance Code and Acceptance Mask registers (their address differs for basic and extended mode
@@ -247,7 +258,7 @@ begin
 //    error_test;
 //    register_test;
 //    bus_off_recovery_test;
-      manual_fd_frame_basic_rcv;
+manual_fd_frame_basic_rcv;
     //send_into_fd_frame;
     //test_tx_after_fdf;
     //test_tx_after_fdf_err;
@@ -384,6 +395,28 @@ task read_register_impl;
     reg_devmsk = 1'bx;
   end
 endtask
+
+task read_16_register_impl;
+  input  [1:0] dev_addr;
+  input  [7:0] reg_addr;
+  output [15:0] data;
+  begin
+    @ (posedge clk);
+    #1;
+    reg_devmsk = dev_addr;
+    #1;
+    reg_addr_read = reg_addr;
+    reg_re = 1'b1;
+    @ (posedge clk);
+    @ (posedge clk); // testbench propagation delay ...
+    $display("(%0t) Reading register #%d[%0d] = 0x%0x", $time, dev_addr, reg_addr, reg_data_out_16);
+    data = reg_data_out_16;
+    #1;
+    reg_addr_read = 'hx;
+    reg_re = 1'b0;
+    reg_devmsk = 1'bx;
+  end
+endtask
 //------------------------------------------------------------------------------
 
 task write_register_impl;
@@ -409,6 +442,29 @@ task write_register_impl;
   end
 endtask
 //------------------------------------------------------------------------------
+task write_16_register_impl;
+  input [1:0] dev_addr;
+  input [7:0] reg_addr;
+  input [15:0] reg_data;
+
+  begin
+    $display("(%0t) Writing register #%d[%0d] with 0x%0x", $time, dev_addr, reg_addr, reg_data);
+    @ (posedge clk);
+    #1;
+    reg_devmsk = dev_addr;
+    #1;
+    reg_addr_write = reg_addr;
+    reg_data_in_16 = reg_data;
+    reg_we = 1'b1;
+    @ (posedge clk);
+    #10;
+    reg_we = 1'b0;
+    reg_addr_write = 'hx;
+    reg_data_in_16 = 'hx;
+    reg_devmsk = 'hx;
+  end
+endtask
+//------------------------------------------------------------------------------
 
 task read_register;
   input  [7:0] reg_addr;
@@ -428,6 +484,24 @@ task read_register2;
 endtask
 //------------------------------------------------------------------------------
 
+task read_16_register;
+  input  [7:0] reg_addr;
+  output [15:0] reg_data;
+  begin
+    read_16_register_impl(2'h1, reg_addr, reg_data);
+  end
+endtask
+//------------------------------------------------------------------------------
+
+task read_16_register2;
+  input  [7:0] reg_addr;
+  output [15:0] reg_data;
+  begin
+    read_16_register_impl(2'h2, reg_addr, reg_data);
+  end
+endtask
+//------------------------------------------------------------------------------
+
 task write_register;
   input [7:0] reg_addr;
   input [7:0] reg_data;
@@ -442,6 +516,24 @@ task write_register2;
   input [7:0] reg_data;
   begin
     write_register_impl(2'h2, reg_addr, reg_data);
+  end
+endtask
+//------------------------------------------------------------------------------
+
+task write_16_register;
+  input [7:0] reg_addr;
+  input [15:0] reg_data;
+  begin
+    write_16_register_impl(2'h1, reg_addr, reg_data);
+  end
+endtask
+//------------------------------------------------------------------------------
+
+task write_16_register2;
+  input [7:0] reg_addr;
+  input [15:0] reg_data;
+  begin
+    write_16_register_impl(2'h2, reg_addr, reg_data);
   end
 endtask
 //------------------------------------------------------------------------------

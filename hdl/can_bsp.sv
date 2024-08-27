@@ -364,8 +364,8 @@ module can_bsp
   /* Error Warning Limit register */
   input  wire  [7:0] error_warning_limit,
 
-  /* FD Data Bit Rate Register  */
-  input en_FD_bit_rate_change, /* Quando for 0, o controlador deverá operar como FD Tolerant */
+  /* FD Control Register  */
+  input en_FD_rx, /* Quando for 0, o controlador deverá operar como FD Tolerant */
 
 
   /* Rx Error Counter register */
@@ -680,7 +680,7 @@ wire go_error_frame_acf;
 wire    [5:0] limited_tx_cnt_ext;
 wire    [5:0] limited_tx_cnt_std;
 
-assign FD_tolerant    = (~en_FD_bit_rate_change);
+assign FD_tolerant    = (~en_FD_rx);
 
 assign go_rx_idle     =                   sample_point &  sampled_bit & last_bit_of_inter | bus_free & (~node_bus_off);
 assign go_rx_id1      =                   sample_point &  (~sampled_bit) & (rx_idle | last_bit_of_inter);
