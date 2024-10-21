@@ -3,6 +3,7 @@ can_top.sv
 can_acf.sv
 can_bsp.sv
 can_btl.sv
+can_crc_destuff.sv
 can_crc.sv
 can_defines.sv
 can_fifo.sv

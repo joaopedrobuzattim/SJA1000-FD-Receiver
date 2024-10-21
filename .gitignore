@@ -5,6 +5,7 @@ xcelium.*
 *.gtkw
 *.diag
 *.vvp
+*.dump
 
 /testbench_xcelium/*.sv
 /testbench_icarus/*.sv
