@@ -629,6 +629,7 @@ wire          overload_frame_ended;
 wire          bit_err;
 wire          ack_err;
 wire          stuff_err;
+wire          fixed_stuff_bit_error;
 
 wire          id_ok;                // If received ID matches ID set in registers
 wire          no_byte0;             // There is no byte 0 (RTR bit set to 1 or DLC field equal to 0). Signal used for acceptance filter.
@@ -706,8 +707,8 @@ assign go_rx_crc = (~bit_de_stuff) & sample_point & (
 
 
 assign go_rx_crc_lim  = (~bit_de_stuff) & sample_point &  rx_crc  &  ( ( ~fdf_brs_r & (bit_cnt[3:0] == 4'd14) ) | 
-                                                                       (  fdf_brs_r & data_len <= 7'd16 & (bit_cnt[4:0] == 5'd16) ) |
-                                                                       (  fdf_brs_r & data_len  > 7'd16 & (bit_cnt[4:0] == 5'd20) )  
+                                                                       (  fdf_brs_r & data_len <= 7'd16 & (bit_cnt[4:0] == 5'd21) ) |
+                                                                       (  fdf_brs_r & data_len  > 7'd16 & (bit_cnt[4:0] == 5'd26) )  
                                                                      );
 
 assign go_rx_ack      = (~bit_de_stuff) & sample_point &  rx_crc_lim;
@@ -1233,33 +1234,42 @@ end
 
 
 // CRC
+
 always @ (posedge clk or posedge rst)
 begin
   if (rst) begin
     crc_in_15 <= 15'h0;
-    crc_in_17 <= 17'h0;
-    crc_in_21 <= 21'h0;
   end
   else if (sample_point & rx_crc & (~bit_de_stuff)) begin
     crc_in_15 <=#Tp {crc_in_15[13:0], sampled_bit};
-    crc_in_17 <=#Tp {crc_in_17[15:0], sampled_bit};
-    crc_in_21 <=#Tp {crc_in_21[19:0], sampled_bit};
   end
 end
 
+can_crc_destuff can_crc_destuff
+(
+  .clk(clk),
+  .rst(rst),
+  .data(sampled_bit),
+  .data_prev(sampled_bit_q),
+  .enable(sample_point & rx_crc & edl),
+  .bit_cnt(bit_cnt),
+  .fixed_stuff_bit_error(fixed_stuff_bit_error),
+  .crc_17_o(crc_in_17),
+  .crc_21_o(crc_in_21)
+);
 
 // bit_cnt (Conta os bits em cada estado da FSM, utilizado para contar estados que sao compostos de mais de um bit)
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
-    bit_cnt <= 6'd0;
+    bit_cnt <= 9'd0;
   else if (FD_tolerant & ( go_rx_id1 | go_rx_id2 | go_rx_dlc | go_rx_data | go_rx_crc |
            go_rx_ack | go_rx_eof | go_rx_inter | go_error_frame | go_overload_frame | go_rx_skip_fdf ) )
-    bit_cnt <=#Tp 6'd0;
+    bit_cnt <=#Tp 9'd0;
   else if (go_rx_id1 | go_rx_id2 | go_rx_dlc | go_rx_data | go_rx_crc |
           go_rx_ack | go_rx_eof | go_rx_inter | go_error_frame | go_overload_frame)
-    bit_cnt <=#Tp 6'd0;
-  else if (sample_point & (~bit_de_stuff))
+    bit_cnt <=#Tp 9'd0;
+  else if ( sample_point & (~bit_de_stuff) )
     bit_cnt <=#Tp bit_cnt + 1'b1;
 end
 
@@ -1331,13 +1341,13 @@ begin
 end
 
 
-assign bit_de_stuff = bit_stuff_cnt == 3'h5;
+assign bit_de_stuff = (bit_stuff_cnt == 3'h5) & (~rx_crc | ~edl);
 assign bit_de_stuff_tx = bit_stuff_cnt_tx == 3'h5;
 
 
 
 // stuff_err
-assign stuff_err = sample_point & bit_stuff_cnt_en & bit_de_stuff & (sampled_bit == sampled_bit_q);
+assign stuff_err = (sample_point & bit_stuff_cnt_en & bit_de_stuff & (sampled_bit == sampled_bit_q)) | (fixed_stuff_bit_error);
 
 
 

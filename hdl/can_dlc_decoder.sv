@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-////  can_crc.v                                                   ////
+////  can_dlc_decoder.sv                                          ////
 ////                                                              ////
 ////  Utilizado para decodificar o Data Lenght Code em frames FD  ////
 //////////////////////////////////////////////////////////////////////
@@ -33,7 +33,7 @@ module can_dlc_decoder(
             4'b1100: data_len_out = 7'd24;
             4'b1101: data_len_out = 7'd32;
             4'b1110: data_len_out = 7'd48;
-            4'b1111: data_len_out = 7'd64;
+            default: data_len_out = 7'd64;
         endcase
     end else begin
         case (data_len_in)
