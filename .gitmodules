@@ -1,0 +1,3 @@
+[submodule "testbench_ctucanfd/ctucanfd"]
+	path = testbench_ctucanfd/ctucanfd
+	url = https://gitlab.fel.cvut.cz/canbus/ctucanfd_ip_core.git
