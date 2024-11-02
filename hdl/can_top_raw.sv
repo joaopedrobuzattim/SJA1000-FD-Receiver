@@ -207,9 +207,9 @@
 //
 
 // synopsys translate_off
-`include "timescale.v"
+`include "timescale.sv"
 // synopsys translate_on
-`include "can_defines.v"
+`include "can_defines.sv"
 
 module can_top_raw
 (
@@ -221,6 +221,8 @@ module can_top_raw
   input  wire [7:0] reg_addr_write_i,
   input  wire [7:0] reg_data_in,
   output reg  [7:0] reg_data_out,
+  input  wire [15:0] reg_data_in_16,
+  output reg  [15:0] reg_data_out_16,
 
   input  wire         clk_i,
   input  wire         rx_i,
@@ -242,16 +244,25 @@ module can_top_raw
 parameter Tp = 1;
 
 
-`ifdef CAN_FD_TOLERANT
 wire go_rx_skip_fdf;
 wire fdf_r;
-`endif
+
+wire go_rx_brs_on;
+wire fdf_brs_r_on;
+wire fdf_detected;
+
+wire rx_inter_btl;
+wire go_rx_inter_btl;
+
+/* FD Control Register */
+wire en_FD_rx;
 
 reg          data_out_fifo_selected;
 
 
 wire   [7:0] data_out_fifo;
 wire   [7:0] data_out_regs;
+wire   [15:0] data_out_regs_16;
 
 
 /* Mode register */
@@ -282,11 +293,16 @@ wire   [7:0] error_capture_code;
 /* Bus Timing 0 register */
 wire   [5:0] baud_r_presc;
 wire   [1:0] sync_jump_width;
+wire   [5:0] baud_r_presc_fd;
+wire   [1:0] sync_jump_width_fd;
 
 /* Bus Timing 1 register */
 wire   [3:0] time_segment1;
 wire   [2:0] time_segment2;
 wire         triple_sampling;
+wire   [3:0] time_segment1_fd;
+wire   [2:0] time_segment2_fd;
+wire         triple_sampling_fd;
 
 /* Error Warning Limit register */
 wire   [7:0] error_warning_limit;
@@ -346,6 +362,7 @@ wire         hard_sync;
 
 /* output from can_bsp module */
 wire         rx_idle;
+wire         rx_r0_fd;
 wire         transmitting;
 wire         transmitter;
 wire         go_rx_inter;
@@ -391,6 +408,7 @@ assign rst       = reg_rst_i;
 assign we        = reg_we_i;
 assign re        = reg_re_i;
 assign cs        = 1'b1;
+
 assign addr_read = reg_addr_read_i;
 assign addr_write = reg_addr_write_i;
 
@@ -404,7 +422,9 @@ can_registers i_can_registers
   .addr_read(addr_read),
   .addr_write(addr_write),
   .data_in(reg_data_in),
+  .data_in_16(reg_data_in_16),
   .data_out(data_out_regs),
+  .data_out_16(data_out_regs_16),
   .irq_n(irq_on),
 
   .sample_point(sample_point),
@@ -427,6 +447,8 @@ can_registers i_can_registers
   .node_error_active(node_error_active),
   .rx_message_counter(rx_message_counter),
 
+  /* FD Control Register  */
+  .en_FD_rx(en_FD_rx),
 
   /* Mode register */
   .reset_mode(reset_mode),
@@ -456,11 +478,16 @@ can_registers i_can_registers
   /* Bus Timing 0 register */
   .baud_r_presc(baud_r_presc),
   .sync_jump_width(sync_jump_width),
+  .baud_r_presc_fd(baud_r_presc_fd),
+  .sync_jump_width_fd(sync_jump_width_fd),
 
   /* Bus Timing 1 register */
   .time_segment1(time_segment1),
   .time_segment2(time_segment2),
   .triple_sampling(triple_sampling),
+  .time_segment1_fd(time_segment1_fd),
+  .time_segment2_fd(time_segment2_fd),
+  .triple_sampling_fd(triple_sampling_fd),
 
   /* Error Warning Limit register */
   .error_warning_limit(error_warning_limit),
@@ -513,7 +540,8 @@ can_registers i_can_registers
 );
 
 
-
+assign rx_inter_btl = (~en_FD_rx) ? (rx_inter | fdf_r ): rx_inter;
+assign go_rx_inter_btl = (~en_FD_rx)  ? (go_rx_inter | go_rx_skip_fdf) : go_rx_inter;
 
 /* Connecting can_btl module */
 can_btl i_can_btl
@@ -526,11 +554,19 @@ can_btl i_can_btl
   /* Bus Timing 0 register */
   .baud_r_presc(baud_r_presc),
   .sync_jump_width(sync_jump_width),
+  .baud_r_presc_fd(baud_r_presc_fd),
+  .sync_jump_width_fd(sync_jump_width_fd),
 
   /* Bus Timing 1 register */
   .time_segment1(time_segment1),
   .time_segment2(time_segment2),
   .triple_sampling(triple_sampling),
+  .time_segment1_fd(time_segment1_fd),
+  .time_segment2_fd(time_segment2_fd),
+  .triple_sampling_fd(triple_sampling_fd),
+
+  /* FD Control Register  */
+  .en_FD_rx(en_FD_rx),
 
   /* Output signals from this module */
   .sample_point(sample_point),
@@ -541,27 +577,24 @@ can_btl i_can_btl
 
 
   /* output from can_bsp module */
+  .fdf_detected(fdf_detected),
+  .rx_r0_fd(rx_r0_fd),
   .rx_idle(rx_idle),
   .transmitting(transmitting),
   .transmitter(transmitter),
-`ifdef CAN_FD_TOLERANT
   // also needed for hard_sync for bsp.go_crc_enable
-  .rx_inter(rx_inter | fdf_r),
-  .go_rx_inter(go_rx_inter | go_rx_skip_fdf),
-`else
-  .rx_inter(rx_inter),
-  .go_rx_inter(go_rx_inter),
-`endif
+  .rx_inter(rx_inter_btl),
+  .go_rx_inter(go_rx_inter_btl),
   .tx_next(tx_next),
 
   .go_overload_frame(go_overload_frame),
   .go_error_frame(go_error_frame),
   .go_tx(go_tx),
   .send_ack(send_ack),
-  .node_error_passive(node_error_passive)
+  .node_error_passive(node_error_passive),
 
-
-
+  .fdf_brs_r_on(fdf_brs_r_on),
+  .go_rx_brs_on(go_rx_brs_on)
 );
 
 
@@ -583,11 +616,15 @@ can_bsp i_can_bsp
   .data_out(data_out_fifo),
   .fifo_selected(data_out_fifo_selected),
 
-`ifdef CAN_FD_TOLERANT
   .rx_sync_i(rx_sync),
   .go_rx_skip_fdf_o(go_rx_skip_fdf),
   .fdf_o(fdf_r),
-`endif
+
+  .go_rx_brs_on_o(go_rx_brs_on),
+  .fdf_brs_on_o(fdf_brs_r_on),
+
+  /* FD Control Register  */
+  .en_FD_rx(en_FD_rx),
 
   /* Mode register */
   .reset_mode(reset_mode),
@@ -626,6 +663,8 @@ can_bsp i_can_bsp
   .extended_mode(extended_mode),
 
   /* output from can_bsp module */
+  .fdf_detected(fdf_detected),
+  .rx_r0_fd(rx_r0_fd),
   .rx_idle(rx_idle),
   .transmitting(transmitting),
   .transmitter(transmitter),
@@ -722,10 +761,13 @@ always @ (posedge clk_i)
 begin
   if (cs & re)
     begin
-      if (data_out_fifo_selected)
+      if (data_out_fifo_selected) begin
         reg_data_out <=#Tp data_out_fifo;
-      else
+        reg_data_out_16 <= 16'b0;
+      end else begin
         reg_data_out <=#Tp data_out_regs;
+        reg_data_out_16 <=#Tp data_out_regs_16;
+      end
     end
 end
 

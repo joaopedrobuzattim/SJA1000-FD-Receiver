@@ -1,3 +1,84 @@
+task test_read_write_on_BRP_Modifier_register;
+begin
+
+  //Entrando em modo reset
+  write_register(8'd0, {7'h0, (`CAN_MODE_RESET)});
+  write_register2(8'd0, {7'h0, (`CAN_MODE_RESET)});
+
+  repeat ((`CAN_TIMING1_TSEG1 + `CAN_TIMING1_TSEG2 + 3)*BRP) @ (posedge clk);
+
+  // Escrevendo no registrador FD Data Bit Rate Register (FDDBR)
+  // 0 0 0 0 0 1 0 1  
+  write_register_impl(2'h3, 8'd09, 8'h05);
+
+  read_register(8'd09, tmp_data);
+
+  repeat ((`CAN_TIMING1_TSEG1 + `CAN_TIMING1_TSEG2 + 3)*BRP) @ (posedge clk);
+
+  if(tmp_data == 8'h05)
+  begin
+    $display("OK!");
+  end
+  else
+  begin 
+    $display("Not OK.");
+  end
+
+  repeat ((`CAN_TIMING1_TSEG1 + `CAN_TIMING1_TSEG2 + 3)*BRP) @ (posedge clk);
+
+  read_register2(8'd09, tmp_data);
+
+  if(tmp_data == 8'h05)
+  begin
+    $display("OK!");
+  end
+  else
+  begin 
+    $display("Not OK.");
+  end
+
+  repeat ((`CAN_TIMING1_TSEG1 + `CAN_TIMING1_TSEG2 + 3)*BRP) @ (posedge clk);
+
+  // Switch-off reset mode
+  write_register(8'd0, {7'h0, ~(`CAN_MODE_RESET)});
+  write_register2(8'd0, {7'h0, ~(`CAN_MODE_RESET)});
+
+  repeat ((`CAN_TIMING1_TSEG1 + `CAN_TIMING1_TSEG2 + 3)*BRP) @ (posedge clk);
+
+  // Tentando escrever no registrador fora do modo RESET
+  write_register_impl(2'h3, 8'd09, 8'h07);
+
+  repeat ((`CAN_TIMING1_TSEG1 + `CAN_TIMING1_TSEG2 + 3)*BRP) @ (posedge clk);
+
+  read_register(8'd09, tmp_data);
+
+  if(tmp_data != 8'h07)
+  begin
+    $display("OK!");
+  end
+  else
+  begin 
+    $display("Not OK.");
+  end
+
+  read_register2(8'd09, tmp_data);
+
+  repeat ((`CAN_TIMING1_TSEG1 + `CAN_TIMING1_TSEG2 + 3)*BRP) @ (posedge clk);
+
+  if(tmp_data != 8'h07)
+  begin
+    $display("OK!");
+  end
+  else
+  begin 
+    $display("Not OK.");
+  end
+
+end
+endtask
+
+
+
 task test_simple_recv;
   reg [2:0]  txd;
   reg [2:0]  rxd;
@@ -1191,6 +1272,10 @@ task send_frame_extended;    // CAN IP core sends basic or extended frames in ex
     write_register(8'd0, {7'h0, (`CAN_MODE_RESET)});
     write_register2(8'd0, {7'h0, (`CAN_MODE_RESET)});
 
+    // Configurando o controlador para operar como FD Tolerant
+    write_register(8'd9, 7'h0);
+    write_register2(8'd9, 7'h0);
+
     // Set Clock Divider register
     extended_mode = 1'b1;
     write_register(8'd31, {extended_mode, 7'h0});    // Setting the extended mode
@@ -1772,6 +1857,35 @@ endtask   // test_reset_mode
 task manual_fd_frame_basic_rcv;
   integer done;
   begin
+    // Configurando o controlador para operar como FD Tolerant
+
+    // Switch-on reset mode
+    write_register(8'd0, {7'h0, `CAN_MODE_RESET});
+    write_register2(8'd0, {7'h0, `CAN_MODE_RESET});
+    repeat (50) @ (posedge clk);
+
+    // Habilitando recepcao de frames FD
+    write_register(8'd9, 8'h0);
+    write_register2(8'd9, 8'h1);
+
+    // Set Clock Divider register
+    extended_mode = 1'b1;
+    write_register(8'd31, {extended_mode, 7'h0});    // Setting the extended mode
+    write_register2(8'd31, {extended_mode, 7'h0});    // Setting the extended mode
+
+    write_register(8'd20, 8'hff); // acceptance mask 0
+    write_register(8'd21, 8'hff); // acceptance mask 1
+    write_register(8'd22, 8'hff); // acceptance mask 2
+    write_register(8'd23, 8'hff); // acceptance mask 3
+    write_register2(8'd20, 8'hff); // acceptance mask 0
+    write_register2(8'd21, 8'hff); // acceptance mask 1
+    write_register2(8'd22, 8'hff); // acceptance mask 2
+    write_register2(8'd23, 8'hff); // acceptance mask 3
+
+    repeat (50) @ (posedge clk);
+    write_register(8'd0, {7'h0, ~(`CAN_MODE_RESET)});
+    write_register2(8'd0, {7'h0, ~(`CAN_MODE_RESET)});
+
     repeat (100) @ (posedge clk);
 
     // After exiting the reset mode sending bus free
@@ -1801,14 +1915,36 @@ task manual_fd_frame_basic_rcv;
         ///*
         send_bit(0);  // SOF
         send_bits(11, 11'b01010101010);    // ID
-        send_bit(1);  // RTR
+        send_bit(0);  // RTR
         send_bit(0);  // IDE
         send_bit(1);  // FD
-        send_bits(4, 4'b0111);             // DLC
-        repeat (10) send_fd_bits(6, 6'b111110);
-        // some invalid stuff, does not really matter
-        send_bits(15+2, 17'b11000001001011011); // CRC (with 2 stuff bits)
-        send_bit(1);  // CRC DELIM
+        send_bit(0);  // r0 FD
+        send_bit(1);  // BRS
+        send_fd_bit(0);  // ESI
+        send_fd_bits(4, 4'b1011);             // DLC
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 1
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 2
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 3
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 4
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 5
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 6
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 7
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 8
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 9
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 10
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 11
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 12
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 13
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 14
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 15
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 16
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 17
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 18
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 19
+        send_fd_bits(8, 8'b10101001); // Byte de Dados 20
+        // send_bits(15+1, 16'b1111000101111011); (gera erro de valro incorreto de CRC para DLC  1)// CRC (with stuff bit)
+        send_fd_bits(27, 27'b010010000010110101110011011); // CRC (with stuff bit)
+        send_fd_bit(1);  // CRC DELIM
         send_bit(0);  // ACK
         send_bit(1);  // ACK DELIM
         send_bits(7, 7'b1111111); // EOF

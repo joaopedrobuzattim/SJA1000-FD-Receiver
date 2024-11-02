@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-////  can_ibo.v                                                   ////
+////  can_top.v                                                   ////
 ////                                                              ////
 ////                                                              ////
 ////  This file is part of the CAN Protocol Controller            ////
@@ -46,39 +46,70 @@
 //// from Bosch.                                                  ////
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
-//
-// CVS Revision History
-//
-// $Log: not supported by cvs2svn $
-// Revision 1.2  2003/02/09 02:24:33  mohor
-// Bosch license warning added. Error counters finished. Overload frames
-// still need to be fixed.
-//
-// Revision 1.1  2003/02/04 14:34:52  mohor
-// *** empty log message ***
-//
-//
-//
-//
 
+// synopsys translate_off
+`include "timescale.sv"
+// synopsys translate_on
+`include "can_defines.sv"
 
-// This module only inverts bit order
-module can_ibo
+module can_ifc_8051
 (
-  di,
-  do
+  input  wire       clk_i,
+  output wire       reg_rst_o,
+  output wire       reg_re_o,
+  output wire       reg_we_o,
+  output wire [7:0] reg_addr_o,
+  output wire [7:0] reg_data_in_o,
+  input  wire [7:0] reg_data_out_i,
+
+  input  wire       rst_i,
+  input  wire       ale_i,
+  input  wire       rd_i,
+  input  wire       wr_i,
+  inout  wire [7:0] port_0_io,
+  input  wire       cs_can_i
 );
 
-input   [7:0] di;
-output  [7:0] do;
+parameter Tp = 1;
 
-assign do[0] = di[7];
-assign do[1] = di[6];
-assign do[2] = di[5];
-assign do[3] = di[4];
-assign do[4] = di[3];
-assign do[5] = di[2];
-assign do[6] = di[1];
-assign do[7] = di[0];
+  reg    [7:0] addr_latched;
+  reg          wr_i_q;
+  reg          rd_i_q;
+
+  // Latching address
+  always @ (posedge clk_i or posedge rst_i)
+  begin
+    if (rst_i)
+      addr_latched <= 8'h0;
+    else if (ale_i)
+      addr_latched <=#Tp port_0_io;
+  end
+
+
+  // Generating delayed wr_i and rd_i signals
+  always @ (posedge clk_i or posedge rst_i)
+  begin
+    if (rst_i)
+      begin
+        wr_i_q <= 1'b0;
+        rd_i_q <= 1'b0;
+      end
+    else
+      begin
+        wr_i_q <=#Tp wr_i;
+        rd_i_q <=#Tp rd_i;
+      end
+  end
+
+
+  wire reg_cs;
+  assign reg_cs = ((wr_i & (~wr_i_q)) | (rd_i & (~rd_i_q))) & cs_can_i;
+
+  assign reg_rst_o       = rst_i;
+  assign reg_we_o        = reg_cs & wr_i;
+  assign reg_re_o        = reg_cs & ~wr_i;
+  assign reg_addr_o      = addr_latched;
+  assign reg_data_in_o   = port_0_io;
+  assign port_0_io       = (cs_can_i & rd_i)? reg_data_out_i : 8'hz;
 
 endmodule

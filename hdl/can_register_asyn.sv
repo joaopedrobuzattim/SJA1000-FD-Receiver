@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-////  can_register_syn.v                                          ////
+////  can_register_asyn.v                                         ////
 ////                                                              ////
 ////                                                              ////
 ////  This file is part of the CAN Protocol Controller            ////
@@ -50,7 +50,10 @@
 // CVS Revision History
 //
 // $Log: not supported by cvs2svn $
-// Revision 1.4  2003/03/11 16:31:58  mohor
+// Revision 1.6  2003/03/20 16:58:50  mohor
+// unix.
+//
+// Revision 1.4  2003/03/11 16:32:34  mohor
 // timescale.v is used for simulation only.
 //
 // Revision 1.3  2003/02/09 02:24:33  mohor
@@ -67,16 +70,16 @@
 //
 
 // synopsys translate_off
-`include "timescale.v"
+`include "timescale.sv"
 // synopsys translate_on
 
 
-module can_register_syn
+module can_register_asyn
 ( data_in,
   data_out,
   we,
   clk,
-  rst_sync
+  rst
 );
 
 parameter WIDTH = 8; // default parameter of the register width
@@ -85,16 +88,16 @@ parameter RESET_VALUE = 0;
 input [WIDTH-1:0] data_in;
 input             we;
 input             clk;
-input             rst_sync;
+input             rst;
 
 output [WIDTH-1:0] data_out;
 reg    [WIDTH-1:0] data_out;
 
 
 
-always @ (posedge clk)
+always @ (posedge clk or posedge rst)
 begin
-  if (rst_sync)                       // synchronous reset
+  if (rst)                            // asynchronous reset
     data_out<=#1 RESET_VALUE;
   else if (we)                        // write
     data_out<=#1 data_in;

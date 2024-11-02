@@ -1,4 +1,4 @@
-`include "timescale.v"
+`include "timescale.sv"
 
 module sja1000
 (

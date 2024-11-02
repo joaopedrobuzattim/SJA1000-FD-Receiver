@@ -1,4 +1,4 @@
-`include "timescale.v"
+`include "timescale.sv"
 module can_ifc_apb
 (
     output wire        reg_rst_o,

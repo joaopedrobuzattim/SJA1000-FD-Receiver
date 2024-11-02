@@ -1,6 +1,31 @@
+# CADENCE
 xrun.*
 xcelium.*
+*.log
+*.svwf
+*.key
+hdl.var
+cds.lib
+
+testbench_ctucanfd/CTU_CAN_FD_RTL/*
+!testbench_ctucanfd/CTU_CAN_FD_RTL/.gitkeep
+
+testbench_ctucanfd/WORKLIB_SV/*
+!testbench_ctucanfd/WORKLIB_SV/.gitkeep
+
+
+# ICARUS + GTK
 *.vcd
+*.gtkw
+*.diag
+*.vvp
+*.dump
+
+
+/testbench_xcelium/*.sv
+/testbench_icarus/*.sv
+/testbench_icarus/test
 
 waves.shm/
 xcelium.d/
+.simvision/

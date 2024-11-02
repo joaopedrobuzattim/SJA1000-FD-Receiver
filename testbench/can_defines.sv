@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-////  can_testbench_defines.v                                     ////
+////  can_defines.v                                               ////
 ////                                                              ////
 ////                                                              ////
 ////  This file is part of the CAN Protocol Controller            ////
@@ -17,7 +17,7 @@
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-//// Copyright (C) 2002, 2003 Authors                             ////
+//// Copyright (C) 2002, 2003, 2004 Authors                       ////
 ////                                                              ////
 //// This source file may be used and distributed without         ////
 //// restriction provided that this copyright statement is not    ////
@@ -50,55 +50,75 @@
 // CVS Revision History
 //
 // $Log: not supported by cvs2svn $
-// Revision 1.9  2003/09/30 20:53:58  mohor
-// Fixing the core to be Bosch VHDL Reference compatible.
+// Revision 1.13  2004/02/08 14:28:03  mohor
+// Header changed.
 //
-// Revision 1.8  2003/02/18 00:17:44  mohor
-// Define CAN_CLOCK_DIVIDER_MODE not used any more. Deleted.
+// Revision 1.12  2003/10/17 05:55:20  markom
+// mbist signals updated according to newest convention
 //
-// Revision 1.7  2003/02/09 02:24:11  mohor
+// Revision 1.11  2003/09/05 12:46:42  mohor
+// ALTERA_RAM supported.
+//
+// Revision 1.10  2003/08/14 16:04:52  simons
+// Artisan ram instances added.
+//
+// Revision 1.9  2003/06/27 20:56:15  simons
+// Virtual silicon ram instances added.
+//
+// Revision 1.8  2003/06/09 11:32:36  mohor
+// Ports added for the CAN_BIST.
+//
+// Revision 1.7  2003/03/20 16:51:55  mohor
+// *** empty log message ***
+//
+// Revision 1.6  2003/03/12 04:19:13  mohor
+// 8051 interface added (besides WISHBONE interface). Selection is made in
+// can_defines.v file.
+//
+// Revision 1.5  2003/03/05 15:03:20  mohor
+// Xilinx RAM added.
+//
+// Revision 1.4  2003/03/01 22:52:47  mohor
+// Actel APA ram supported.
+//
+// Revision 1.3  2003/02/09 02:24:33  mohor
 // Bosch license warning added. Error counters finished. Overload frames
 // still need to be fixed.
 //
-// Revision 1.6  2003/01/14 12:19:29  mohor
-// rx_fifo is now working.
-//
-// Revision 1.5  2003/01/09 14:46:52  mohor
-// Temporary files (backup).
-//
-// Revision 1.4  2003/01/08 02:09:44  mohor
-// Acceptance filter added.
-//
-// Revision 1.3  2002/12/28 04:13:53  mohor
-// Backup version.
-//
-// Revision 1.2  2002/12/27 00:12:48  mohor
+// Revision 1.2  2002/12/27 00:12:52  mohor
 // Header changed, testbench improved to send a frame (crc still missing).
 //
-// Revision 1.1  2002/12/26 16:00:29  mohor
-// Testbench define file added. Clock divider register added.
+// Revision 1.1.1.1  2002/12/20 16:39:21  mohor
+// Initial
 //
 //
 //
-//
-
-/* Mode register */
-`define CAN_MODE_RESET                  1'h1    /* Reset mode */
-
-/* Bit Timing 0 register value */
-//`define CAN_TIMING0_BRP                 6'h0    /* Baud rate prescaler (2*(value+1)) */
-//`define CAN_TIMING0_SJW                 2'h2    /* SJW (value+1) */
-
-`define CAN_TIMING0_BRP                 6'h3    /* Baud rate prescaler (2*(value+1)) */
-`define CAN_TIMING0_SJW                 2'h1    /* SJW (value+1) */
-
-/* Bit Timing 1 register value */
-//`define CAN_TIMING1_TSEG1               4'h4    /* TSEG1 segment (value+1) */
-//`define CAN_TIMING1_TSEG2               3'h3    /* TSEG2 segment (value+1) */
-//`define CAN_TIMING1_SAM                 1'h0    /* Triple sampling */
-
-`define CAN_TIMING1_TSEG1               4'hf    /* TSEG1 segment (value+1) */
-`define CAN_TIMING1_TSEG2               3'h2    /* TSEG2 segment (value+1) */
-`define CAN_TIMING1_SAM                 1'h0    /* Triple sampling */
 
 
+// Uncomment following line if you want to use WISHBONE interface. Otherwise
+// 8051 interface is used.
+//`define   CAN_WISHBONE_IF
+
+// Uncomment following line if you want to use CAN in Actel APA devices (embedded memory used)
+// `define   ACTEL_APA_RAM
+
+// Uncomment following line if you want to use CAN in Altera devices (embedded memory used)
+// `define   ALTERA_RAM
+
+// Uncomment following line if you want to use CAN in Xilinx devices (embedded memory used)
+// `define   XILINX_RAM
+
+// Uncomment the line for the ram used in ASIC implementation
+// `define   VIRTUALSILICON_RAM
+// `define   ARTISAN_RAM
+
+// Uncomment the following line when RAM BIST is needed (ASIC implementation)
+//`define CAN_BIST                    // Bist (for ASIC implementation)
+
+/* width of MBIST control bus */
+//`define CAN_MBIST_CTRL_WIDTH 3
+
+/* Uncomment following line to not disrupt other nodes CAN FD communication */
+`define CAN_FD_TOLERANT
+
+`define FSM_RX

@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-////  can_crc.v                                                   ////
+////  can_ibo.v                                                   ////
 ////                                                              ////
 ////                                                              ////
 ////  This file is part of the CAN Protocol Controller            ////
@@ -50,61 +50,35 @@
 // CVS Revision History
 //
 // $Log: not supported by cvs2svn $
-// Revision 1.4  2003/07/16 13:16:51  mohor
-// Fixed according to the linter.
-//
-// Revision 1.3  2003/02/10 16:02:11  mohor
-// CAN is working according to the specification. WB interface and more
-// registers (status, IRQ, ...) needs to be added.
-//
 // Revision 1.2  2003/02/09 02:24:33  mohor
 // Bosch license warning added. Error counters finished. Overload frames
 // still need to be fixed.
 //
-// Revision 1.1  2003/01/08 02:10:54  mohor
-// Acceptance filter added.
+// Revision 1.1  2003/02/04 14:34:52  mohor
+// *** empty log message ***
 //
 //
 //
 //
 
-// synopsys translate_off
-`include "timescale.v"
-// synopsys translate_on
 
-module can_crc (clk, data, enable, initialize, crc);
+// This module only inverts bit order
+module can_ibo
+(
+  di_ibo,
+  do_ibo
+);
 
+input   [7:0] di_ibo;
+output  [7:0] do_ibo;
 
-parameter Tp = 1;
-
-input         clk;
-input         data;
-input         enable;
-input         initialize;
-
-output [14:0] crc;
-
-reg    [14:0] crc;
-
-wire          crc_next;
-wire   [14:0] crc_tmp;
-
-
-assign crc_next = data ^ crc[14];
-assign crc_tmp = {crc[13:0], 1'b0};
-
-always @ (posedge clk)
-begin
-  if(initialize)
-    crc <= #Tp 15'h0;
-  else if (enable)
-    begin
-      if (crc_next)
-        crc <= #Tp crc_tmp ^ 15'h4599;
-      else
-        crc <= #Tp crc_tmp;
-    end
-end
-
+assign do_ibo[0] = di_ibo[7];
+assign do_ibo[1] = di_ibo[6];
+assign do_ibo[2] = di_ibo[5];
+assign do_ibo[3] = di_ibo[4];
+assign do_ibo[4] = di_ibo[3];
+assign do_ibo[5] = di_ibo[2];
+assign do_ibo[6] = di_ibo[1];
+assign do_ibo[7] = di_ibo[0];
 
 endmodule

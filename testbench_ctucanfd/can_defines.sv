@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-////  can_register.v                                              ////
+////  can_defines.v                                               ////
 ////                                                              ////
 ////                                                              ////
 ////  This file is part of the CAN Protocol Controller            ////
@@ -50,11 +50,36 @@
 // CVS Revision History
 //
 // $Log: not supported by cvs2svn $
-// Revision 1.6  2003/03/20 16:58:50  mohor
-// unix.
+// Revision 1.13  2004/02/08 14:28:03  mohor
+// Header changed.
 //
-// Revision 1.4  2003/03/11 16:32:34  mohor
-// timescale.v is used for simulation only.
+// Revision 1.12  2003/10/17 05:55:20  markom
+// mbist signals updated according to newest convention
+//
+// Revision 1.11  2003/09/05 12:46:42  mohor
+// ALTERA_RAM supported.
+//
+// Revision 1.10  2003/08/14 16:04:52  simons
+// Artisan ram instances added.
+//
+// Revision 1.9  2003/06/27 20:56:15  simons
+// Virtual silicon ram instances added.
+//
+// Revision 1.8  2003/06/09 11:32:36  mohor
+// Ports added for the CAN_BIST.
+//
+// Revision 1.7  2003/03/20 16:51:55  mohor
+// *** empty log message ***
+//
+// Revision 1.6  2003/03/12 04:19:13  mohor
+// 8051 interface added (besides WISHBONE interface). Selection is made in
+// can_defines.v file.
+//
+// Revision 1.5  2003/03/05 15:03:20  mohor
+// Xilinx RAM added.
+//
+// Revision 1.4  2003/03/01 22:52:47  mohor
+// Actel APA ram supported.
 //
 // Revision 1.3  2003/02/09 02:24:33  mohor
 // Bosch license warning added. Error counters finished. Overload frames
@@ -69,35 +94,31 @@
 //
 //
 
-// synopsys translate_off
-`include "timescale.v"
-// synopsys translate_on
 
+// Uncomment following line if you want to use WISHBONE interface. Otherwise
+// 8051 interface is used.
+//`define   CAN_WISHBONE_IF
 
-module can_register
-( data_in,
-  data_out,
-  we,
-  clk
-);
+// Uncomment following line if you want to use CAN in Actel APA devices (embedded memory used)
+// `define   ACTEL_APA_RAM
 
-parameter WIDTH = 8; // default parameter of the register width
+// Uncomment following line if you want to use CAN in Altera devices (embedded memory used)
+// `define   ALTERA_RAM
 
-input [WIDTH-1:0] data_in;
-input             we;
-input             clk;
+// Uncomment following line if you want to use CAN in Xilinx devices (embedded memory used)
+// `define   XILINX_RAM
 
-output [WIDTH-1:0] data_out;
-reg    [WIDTH-1:0] data_out;
+// Uncomment the line for the ram used in ASIC implementation
+// `define   VIRTUALSILICON_RAM
+// `define   ARTISAN_RAM
 
+// Uncomment the following line when RAM BIST is needed (ASIC implementation)
+//`define CAN_BIST                    // Bist (for ASIC implementation)
 
+/* width of MBIST control bus */
+//`define CAN_MBIST_CTRL_WIDTH 3
 
-always @ (posedge clk)
-begin
-  if (we)                        // write
-    data_out<=#1 data_in;
-end
+/* Uncomment following line to not disrupt other nodes CAN FD communication */
+`define CAN_FD_TOLERANT
 
-
-
-endmodule
+`define FSM_RX
