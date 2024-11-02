@@ -377,6 +377,8 @@ module can_bsp
   /* Clock Divider register */
   input  wire        extended_mode,
 
+  output wire        fdf_detected,
+  output reg         rx_r0_fd,
   output reg         rx_idle,
   output reg         transmitting,
   output reg         transmitter,
@@ -476,7 +478,6 @@ reg           rx_id2;
 reg           rx_rtr2;
 reg           rx_r1;
 reg           rx_r0;
-reg           rx_r0_fd;
 reg           rx_brs;
 reg           rx_esi;
 reg           rx_dlc;
@@ -573,8 +574,6 @@ reg           go_rx_skip_fdf; // async
 reg     [3:0] fd_skip_cnt;
 wire          fd_skip_finished;
 
-// Detecta frames FD
-wire          fdf_detected;
 
 wire    [4:0] error_capture_code_segment;
 wire          error_capture_code_direction;
@@ -729,7 +728,7 @@ assign go_overload_frame = (     sample_point & ((~sampled_bit) | overload_reque
                            ;
 
 
-assign go_crc_enable = FD_tolerant ? ((hard_sync & (~fdf_r)) | go_tx) : (hard_sync | go_tx);
+assign go_crc_enable = FD_tolerant ? ((hard_sync & (~fdf_r)) | go_tx) : ((hard_sync & ~rx_r0_fd) | go_tx);
 assign rst_crc_enable = FD_tolerant ? (go_rx_crc | go_rx_skip_fdf) : (go_rx_crc);
 
 assign bit_de_stuff_set   = go_rx_id1 & (~go_error_frame);

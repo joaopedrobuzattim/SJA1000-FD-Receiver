@@ -249,6 +249,7 @@ wire fdf_r;
 
 wire go_rx_brs_on;
 wire fdf_brs_r_on;
+wire fdf_detected;
 
 wire rx_inter_btl;
 wire go_rx_inter_btl;
@@ -361,6 +362,7 @@ wire         hard_sync;
 
 /* output from can_bsp module */
 wire         rx_idle;
+wire         rx_r0_fd;
 wire         transmitting;
 wire         transmitter;
 wire         go_rx_inter;
@@ -575,6 +577,8 @@ can_btl i_can_btl
 
 
   /* output from can_bsp module */
+  .fdf_detected(fdf_detected),
+  .rx_r0_fd(rx_r0_fd),
   .rx_idle(rx_idle),
   .transmitting(transmitting),
   .transmitter(transmitter),
@@ -659,6 +663,8 @@ can_bsp i_can_bsp
   .extended_mode(extended_mode),
 
   /* output from can_bsp module */
+  .fdf_detected(fdf_detected),
+  .rx_r0_fd(rx_r0_fd),
   .rx_idle(rx_idle),
   .transmitting(transmitting),
   .transmitter(transmitter),
