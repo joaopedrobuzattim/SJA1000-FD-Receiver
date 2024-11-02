@@ -8,10 +8,10 @@ hdl.var
 cds.lib
 
 testbench_ctucanfd/CTU_CAN_FD_RTL/*
-!testbench_ctucanfd/CTU_CAN_FD_RTL/
+!testbench_ctucanfd/CTU_CAN_FD_RTL/.gitkeep
 
 testbench_ctucanfd/WORKLIB_SV/*
-!testbench_ctucanfd/WORKLIB_SV/
+!testbench_ctucanfd/WORKLIB_SV/.gitkeep
 
 
 # ICARUS + GTK

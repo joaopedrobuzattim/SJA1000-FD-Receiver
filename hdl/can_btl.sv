@@ -184,6 +184,8 @@ module can_btl
   hard_sync,
 
   /* Output from can_bsp module */
+  fdf_detected,
+  rx_r0_fd,
   rx_idle,
   rx_inter,
   transmitting,
@@ -233,6 +235,8 @@ input         transmitting;
 input         transmitter;
 input         go_rx_inter;
 input         tx_next;
+input         fdf_detected;
+input         rx_r0_fd;
 
 input         go_overload_frame;
 input         go_error_frame;
@@ -300,8 +304,8 @@ begin
 end
 
 assign preset_cnt = (baud_r_presc_value)<<1;        // (BRP+1)*2
-assign hard_sync  =   (rx_idle | rx_inter)    & (~rx) & sampled_bit & (~hard_sync_blocked);  // Hard synchronization
-assign resync     =  (~rx_idle) & (~rx_inter) & (~rx) & sampled_bit & (~sync_blocked);       // Re-synchronization
+assign hard_sync  =   (rx_idle | rx_inter | rx_r0_fd)  & (~rx) & sampled_bit & (~hard_sync_blocked);  // Hard synchronization
+assign resync     = (~rx_r0_fd) & (~rx_idle) & (~rx_inter) & (~rx) & sampled_bit & (~sync_blocked);       // Re-synchronization
 
 
 
@@ -514,7 +518,7 @@ begin
     hard_sync_blocked <=#Tp 1'b0;
   else if (hard_sync & clk_en_q | (transmitting & transmitter | go_tx) & tx_point & (~tx_next))
     hard_sync_blocked <=#Tp 1'b1;
-  else if (go_rx_inter | (rx_idle | rx_inter) & sample_point & sampled_bit)  // When a glitch performed synchronization
+  else if ( fdf_detected | (go_rx_inter | (rx_idle | rx_inter) & sample_point & sampled_bit) )  // When a glitch performed synchronization
     hard_sync_blocked <=#Tp 1'b0;
 end
 
