@@ -70,8 +70,6 @@ module can_ifc_8051
   input  wire       cs_can_i
 );
 
-parameter Tp = 1;
-
   reg    [7:0] addr_latched;
   reg          wr_i_q;
   reg          rd_i_q;
@@ -82,7 +80,7 @@ parameter Tp = 1;
     if (rst_i)
       addr_latched <= 8'h0;
     else if (ale_i)
-      addr_latched <=#Tp port_0_io;
+      addr_latched <= port_0_io;
   end
 
 
@@ -96,8 +94,8 @@ parameter Tp = 1;
       end
     else
       begin
-        wr_i_q <=#Tp wr_i;
-        rd_i_q <=#Tp rd_i;
+        wr_i_q <= wr_i;
+        rd_i_q <= rd_i;
       end
   end
 

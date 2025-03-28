@@ -95,7 +95,7 @@ reg    [WIDTH-1:0] data_out;
 always @ (posedge clk)
 begin
   if (we)                        // write
-    data_out<=#1 data_in;
+    data_out <= data_in;
 end
 
 

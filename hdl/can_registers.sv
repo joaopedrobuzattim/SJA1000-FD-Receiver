@@ -304,8 +304,6 @@ module can_registers
 
 );
 
-parameter Tp = 1;
-
 input         clk;
 input         rst;
 input         re;
@@ -520,12 +518,12 @@ wire   we_acceptance_mask_3     = cs & we & (addr_write == 8'd23) & reset_mode &
 
 always @ (posedge clk)
 begin
-  tx_successful_q           <=#Tp tx_successful;
-  overrun_q                 <=#Tp overrun;
-  transmit_buffer_status_q  <=#Tp transmit_buffer_status;
-  error_status_q            <=#Tp error_status;
-  node_bus_off_q            <=#Tp node_bus_off;
-  node_error_passive_q      <=#Tp node_error_passive;
+  tx_successful_q           <= tx_successful;
+  overrun_q                 <= overrun;
+  transmit_buffer_status_q  <= transmit_buffer_status;
+  error_status_q            <= error_status;
+  node_bus_off_q            <= node_bus_off;
+  node_error_passive_q      <= node_error_passive;
 end
 
 
@@ -644,9 +642,9 @@ begin
   if (rst)
     self_rx_request <= 1'b0;
   else if (command[4] & (~command[0]))
-    self_rx_request <=#Tp 1'b1;
+    self_rx_request <= 1'b1;
   else if ((~tx_state) & tx_state_q)
-    self_rx_request <=#Tp 1'b0;
+    self_rx_request <= 1'b0;
 end
 
 
@@ -661,9 +659,9 @@ begin
   if (rst)
     single_shot_transmission <= 1'b0;
   else if (tx_request & command[1] & sample_point)
-    single_shot_transmission <=#Tp 1'b1;
+    single_shot_transmission <= 1'b1;
   else if ((~tx_state) & tx_state_q)
-    single_shot_transmission <=#Tp 1'b0;
+    single_shot_transmission <= 1'b0;
 end
 
 
@@ -684,7 +682,7 @@ begin
   if (rst)
     overload_frame_q <= 1'b0;
   else
-    overload_frame_q <=#Tp overload_frame;
+    overload_frame_q <= overload_frame;
 end
 */
 assign overload_request = 0;  // Overload requests are not supported, yet !!!
@@ -716,9 +714,9 @@ begin
   if (rst)
     transmission_complete <= 1'b1;
   else if (tx_successful & (~tx_successful_q) | abort_tx)
-    transmission_complete <=#Tp 1'b1;
+    transmission_complete <= 1'b1;
   else if (tx_request)
-    transmission_complete <=#Tp 1'b0;
+    transmission_complete <= 1'b0;
 end
 
 
@@ -727,9 +725,9 @@ begin
   if (rst)
     transmit_buffer_status <= 1'b1;
   else if (tx_request)
-    transmit_buffer_status <=#Tp 1'b0;
+    transmit_buffer_status <= 1'b0;
   else if (reset_mode || !need_to_tx)
-    transmit_buffer_status <=#Tp 1'b1;
+    transmit_buffer_status <= 1'b1;
 end
 
 
@@ -738,9 +736,9 @@ begin
   if (rst)
     overrun_status <= 1'b0;
   else if (overrun & (~overrun_q))
-    overrun_status <=#Tp 1'b1;
+    overrun_status <= 1'b1;
   else if (reset_mode || clear_data_overrun)
-    overrun_status <=#Tp 1'b0;
+    overrun_status <= 1'b0;
 end
 
 
@@ -749,9 +747,9 @@ begin
   if (rst)
     receive_buffer_status <= 1'b0;
   else if (reset_mode || release_buffer)
-    receive_buffer_status <=#Tp 1'b0;
+    receive_buffer_status <= 1'b0;
   else if (~info_empty)
-    receive_buffer_status <=#Tp 1'b1;
+    receive_buffer_status <= 1'b1;
 end
 
 /* End Status register */
@@ -892,7 +890,7 @@ begin
   if (rst)
     clkout_cnt <= 3'h0;
   else if (clkout_cnt == clkout_div)
-    clkout_cnt <=#Tp 3'h0;
+    clkout_cnt <= 3'h0;
   else
     clkout_cnt <= clkout_cnt + 1'b1;
 end
@@ -904,7 +902,7 @@ begin
   if (rst)
     clkout_tmp <= 1'b0;
   else if (clkout_cnt == clkout_div)
-    clkout_tmp <=#Tp ~clkout_tmp;
+    clkout_tmp <= ~clkout_tmp;
 end
 
 
@@ -1217,9 +1215,9 @@ begin
   if (rst)
     data_overrun_irq <= 1'b0;
   else if (overrun & (~overrun_q) & data_overrun_irq_en)
-    data_overrun_irq <=#Tp 1'b1;
+    data_overrun_irq <= 1'b1;
   else if (reset_mode || read_irq_reg)
-    data_overrun_irq <=#Tp 1'b0;
+    data_overrun_irq <= 1'b0;
 end
 
 
@@ -1229,9 +1227,9 @@ begin
   if (rst)
     transmit_irq <= 1'b0;
   else if (reset_mode || read_irq_reg)
-    transmit_irq <=#Tp 1'b0;
+    transmit_irq <= 1'b0;
   else if (transmit_buffer_status & (~transmit_buffer_status_q) & transmit_irq_en)
-    transmit_irq <=#Tp 1'b1;
+    transmit_irq <= 1'b1;
 end
 
 
@@ -1241,9 +1239,9 @@ begin
   if (rst)
     receive_irq <= 1'b0;
   else if ((~info_empty) & (~receive_irq) & receive_irq_en)
-    receive_irq <=#Tp 1'b1;
+    receive_irq <= 1'b1;
   else if (reset_mode || release_buffer)
-    receive_irq <=#Tp 1'b0;
+    receive_irq <= 1'b0;
 end
 
 
@@ -1253,9 +1251,9 @@ begin
   if (rst)
     error_irq <= 1'b0;
   else if (((error_status ^ error_status_q) | (node_bus_off ^ node_bus_off_q)) & error_warning_irq_en)
-    error_irq <=#Tp 1'b1;
+    error_irq <= 1'b1;
   else if (read_irq_reg)
-    error_irq <=#Tp 1'b0;
+    error_irq <= 1'b0;
 end
 
 
@@ -1265,9 +1263,9 @@ begin
   if (rst)
     bus_error_irq <= 1'b0;
   else if (set_bus_error_irq & bus_error_irq_en)
-    bus_error_irq <=#Tp 1'b1;
+    bus_error_irq <= 1'b1;
   else if (reset_mode || read_irq_reg)
-    bus_error_irq <=#Tp 1'b0;
+    bus_error_irq <= 1'b0;
 end
 
 
@@ -1277,9 +1275,9 @@ begin
   if (rst)
     arbitration_lost_irq <= 1'b0;
   else if (set_arbitration_lost_irq & arbitration_lost_irq_en)
-    arbitration_lost_irq <=#Tp 1'b1;
+    arbitration_lost_irq <= 1'b1;
   else if (reset_mode || read_irq_reg)
-    arbitration_lost_irq <=#Tp 1'b0;
+    arbitration_lost_irq <= 1'b0;
 end
 
 
@@ -1290,9 +1288,9 @@ begin
   if (rst)
     error_passive_irq <= 1'b0;
   else if ((node_error_passive & (~node_error_passive_q) | (~node_error_passive) & node_error_passive_q & node_error_active) & error_passive_irq_en)
-    error_passive_irq <=#Tp 1'b1;
+    error_passive_irq <= 1'b1;
   else if (reset_mode || read_irq_reg)
-    error_passive_irq <=#Tp 1'b0;
+    error_passive_irq <= 1'b0;
 end
 
 
@@ -1307,9 +1305,9 @@ begin
   if (rst)
     irq_n <= 1'b1;
   else if (read_irq_reg || release_buffer)
-    irq_n <=#Tp 1'b1;
+    irq_n <= 1'b1;
   else if (irq)
-    irq_n <=#Tp 1'b0;
+    irq_n <= 1'b0;
 end
 
 

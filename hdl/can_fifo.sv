@@ -173,7 +173,6 @@ module can_fifo
 `endif
 );
 
-parameter Tp = 1;
 
 input         clk;
 input         rst;
@@ -242,11 +241,11 @@ assign write_length_info = (~wr) & wr_q;
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
-    wr_q <=#Tp 1'b0;
+    wr_q <= 1'b0;
   else if (reset_mode)
-    wr_q <=#Tp 1'b0;
+    wr_q <= 1'b0;
   else
-    wr_q <=#Tp wr;
+    wr_q <= wr;
 end
 
 
@@ -256,9 +255,9 @@ begin
   if (rst)
     len_cnt <= 4'h0;
   else if (reset_mode | write_length_info)
-    len_cnt <=#Tp 4'h0;
+    len_cnt <= 4'h0;
   else if (wr & (~fifo_full))
-    len_cnt <=#Tp len_cnt + 1'b1;
+    len_cnt <= len_cnt + 1'b1;
 end
 
 
@@ -268,9 +267,9 @@ begin
   if (rst)
     wr_info_pointer <= 6'h0;
   else if (write_length_info & (~info_full) | initialize_memories)
-    wr_info_pointer <=#Tp wr_info_pointer + 1'b1;
+    wr_info_pointer <= wr_info_pointer + 1'b1;
   else if (reset_mode)
-    wr_info_pointer <=#Tp rd_info_pointer;
+    wr_info_pointer <= rd_info_pointer;
 end
 
 
@@ -281,7 +280,7 @@ begin
   if (rst)
     rd_info_pointer <= 6'h0;
   else if (release_buffer & (~info_full))
-    rd_info_pointer <=#Tp rd_info_pointer + 1'b1;
+    rd_info_pointer <= rd_info_pointer + 1'b1;
 end
 
 
@@ -291,7 +290,7 @@ begin
   if (rst)
     rd_pointer <= 5'h0;
   else if (release_buffer & (~fifo_empty))
-    rd_pointer <=#Tp rd_pointer + {2'h0, length_info};
+    rd_pointer <= rd_pointer + {2'h0, length_info};
 end
 
 
@@ -301,9 +300,9 @@ begin
   if (rst)
     wr_pointer <= 5'h0;
   else if (reset_mode)
-    wr_pointer <=#Tp rd_pointer;
+    wr_pointer <= rd_pointer;
   else if (wr & (~fifo_full))
-    wr_pointer <=#Tp wr_pointer + 1'b1;
+    wr_pointer <= wr_pointer + 1'b1;
 end
 
 
@@ -313,9 +312,9 @@ begin
   if (rst)
     latch_overrun <= 1'b0;
   else if (reset_mode | write_length_info)
-    latch_overrun <=#Tp 1'b0;
+    latch_overrun <= 1'b0;
   else if (wr & fifo_full)
-    latch_overrun <=#Tp 1'b1;
+    latch_overrun <= 1'b1;
 end
 
 
@@ -325,13 +324,13 @@ begin
   if (rst)
     fifo_cnt <= 7'h0;
   else if (reset_mode)
-    fifo_cnt <=#Tp 7'h0;
+    fifo_cnt <= 7'h0;
   else if (wr & (~release_buffer) & (~fifo_full))
-    fifo_cnt <=#Tp fifo_cnt + 1'b1;
+    fifo_cnt <= fifo_cnt + 1'b1;
   else if ((~wr) & release_buffer & (~fifo_empty))
-    fifo_cnt <=#Tp fifo_cnt - {3'h0, length_info};
+    fifo_cnt <= fifo_cnt - {3'h0, length_info};
   else if (wr & release_buffer & (~fifo_full) & (~fifo_empty))
-    fifo_cnt <=#Tp fifo_cnt - {3'h0, length_info} + 1'b1;
+    fifo_cnt <= fifo_cnt - {3'h0, length_info} + 1'b1;
 end
 
 assign fifo_full = fifo_cnt == 7'd64;
@@ -342,15 +341,15 @@ assign fifo_empty = fifo_cnt == 7'd0;
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
-    info_cnt <=#Tp 7'h0;
+    info_cnt <= 7'h0;
   else if (reset_mode)
-    info_cnt <=#Tp 7'h0;
+    info_cnt <= 7'h0;
   else if (write_length_info ^ release_buffer)
     begin
       if (release_buffer & (~info_empty))
-        info_cnt <=#Tp info_cnt - 1'b1;
+        info_cnt <= info_cnt - 1'b1;
       else if (write_length_info & (~info_full))
-        info_cnt <=#Tp info_cnt + 1'b1;
+        info_cnt <= info_cnt + 1'b1;
     end
 end
 
@@ -373,7 +372,7 @@ begin
   if (rst)
     initialize_memories <= 1'b1;
   else if (&wr_info_pointer)
-    initialize_memories <=#Tp 1'b0;
+    initialize_memories <= 1'b0;
 end
 
 
@@ -581,7 +580,7 @@ end
     always @ (posedge clk)
     begin
       if (write_length_info & (~info_full) | initialize_memories)
-        overrun_info[wr_info_pointer] <=#Tp (latch_overrun | (wr & fifo_full)) & (~initialize_memories);
+        overrun_info[wr_info_pointer] <= (latch_overrun | (wr & fifo_full)) & (~initialize_memories);
     end
 
 
@@ -661,7 +660,7 @@ end
     always @ (posedge clk)
     begin
       if (write_length_info & (~info_full) | initialize_memories)
-        overrun_info[wr_info_pointer] <=#Tp (latch_overrun | (wr & fifo_full)) & (~initialize_memories);
+        overrun_info[wr_info_pointer] <= (latch_overrun | (wr & fifo_full)) & (~initialize_memories);
     end
 
 
@@ -673,7 +672,7 @@ end
   always @ (posedge clk)
   begin
     if (wr & (~fifo_full))
-      fifo[wr_pointer] <=#Tp data_in;
+      fifo[wr_pointer] <= data_in;
   end
 
   // reading from fifo
@@ -684,7 +683,7 @@ end
   always @ (posedge clk)
   begin
     if (write_length_info & (~info_full) | initialize_memories)
-      length_fifo[wr_info_pointer] <=#Tp len_cnt & {4{~initialize_memories}};
+      length_fifo[wr_info_pointer] <= len_cnt & {4{~initialize_memories}};
   end
 
 
@@ -695,7 +694,7 @@ end
   always @ (posedge clk)
   begin
     if (write_length_info & (~info_full) | initialize_memories)
-      overrun_info[wr_info_pointer] <=#Tp (latch_overrun | (wr & fifo_full)) & (~initialize_memories);
+      overrun_info[wr_info_pointer] <= (latch_overrun | (wr & fifo_full)) & (~initialize_memories);
   end
 
 

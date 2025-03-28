@@ -241,8 +241,6 @@ module can_top_raw
 `endif
 );
 
-parameter Tp = 1;
-
 
 wire go_rx_skip_fdf;
 wire fdf_r;
@@ -765,11 +763,11 @@ begin
   if (cs & re)
     begin
       if (data_out_fifo_selected) begin
-        reg_data_out <=#Tp data_out_fifo;
+        reg_data_out <= data_out_fifo;
         reg_data_out_16 <= 16'b0;
       end else begin
-        reg_data_out <=#Tp data_out_regs;
-        reg_data_out_16 <=#Tp data_out_regs_16;
+        reg_data_out <= data_out_regs;
+        reg_data_out_16 <= data_out_regs_16;
       end
     end
 end
@@ -785,8 +783,8 @@ begin
     end
   else
     begin
-      rx_sync_tmp <=#Tp rx_i;
-      rx_sync     <=#Tp rx_sync_tmp;
+      rx_sync_tmp <= rx_i;
+      rx_sync     <= rx_sync_tmp;
     end
 end
 

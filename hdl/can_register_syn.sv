@@ -95,9 +95,9 @@ reg    [WIDTH-1:0] data_out;
 always @ (posedge clk)
 begin
   if (rst_sync)                       // synchronous reset
-    data_out<=#1 RESET_VALUE;
+    data_out <= RESET_VALUE;
   else if (we)                        // write
-    data_out<=#1 data_in;
+    data_out <= data_in;
 end
 
 
