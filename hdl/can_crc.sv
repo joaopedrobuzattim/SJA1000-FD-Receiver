@@ -72,7 +72,7 @@
 `include "timescale.sv"
 // synopsys translate_on
 
-module can_crc (clk, data, stuff_bit, enable, initialize, crc_15, crc_17, crc_21);
+module can_crc (clk, data, stuff_bit, enable, initialize, FD_iso, crc_15, crc_17, crc_21);
 
 
 parameter Tp = 1;
@@ -85,6 +85,7 @@ input         data;
 input         stuff_bit;
 input         enable;
 input         initialize;
+input         FD_iso;
 
 // CRC 15
 output [14:0] crc_15;
@@ -118,11 +119,17 @@ assign crc_21 = crc_21_r;
 
 always @ (posedge clk)
 begin
-  if(initialize) begin
+  if(initialize & ~FD_iso) begin
     crc_15_r <= #Tp 15'h0;
     crc_17_r <= #Tp 17'h0;
     crc_21_r <= #Tp 21'h0;
-  end else if (enable)
+  end
+  else if (initialize & FD_iso) begin
+    crc_15_r <= #Tp 15'h0;
+    crc_17_r <= #Tp 17'h10000;
+    crc_21_r <= #Tp 21'h100000;
+  end
+  else if (enable)
     begin
 
       // Bit stuffs não são utilizados no calculo do CRC de frames CAN Classico

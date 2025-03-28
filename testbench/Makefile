@@ -1,5 +1,5 @@
 FLAGS_ICARUS := -gio-range-error -g2012 -gverilog-ams -Wall -Wno-timescale 
-FLAGS_XRUN := -f filelist.txt -access +rwc -gui
+FLAGS_XRUN := -fsmdebug -f filelist.txt -access +rwc -gui 
 
 .PHONY: run-xcelium
 run-xcelium:

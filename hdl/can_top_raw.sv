@@ -256,6 +256,7 @@ wire go_rx_inter_btl;
 
 /* FD Control Register */
 wire en_FD_rx;
+wire en_FD_iso;
 
 reg          data_out_fifo_selected;
 
@@ -449,6 +450,7 @@ can_registers i_can_registers
 
   /* FD Control Register  */
   .en_FD_rx(en_FD_rx),
+  .en_FD_iso(en_FD_iso),
 
   /* Mode register */
   .reset_mode(reset_mode),
@@ -625,6 +627,7 @@ can_bsp i_can_bsp
 
   /* FD Control Register  */
   .en_FD_rx(en_FD_rx),
+  .en_FD_iso(en_FD_iso),
 
   /* Mode register */
   .reset_mode(reset_mode),

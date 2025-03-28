@@ -247,6 +247,7 @@ module can_registers
 
   /* FD Control Register  */
   en_FD_rx,
+  en_FD_iso,
 
   /* Error Warning Limit register */
   error_warning_limit,
@@ -363,6 +364,7 @@ input         overload_frame;
 
 /* FD Control Register  */
 output      en_FD_rx;
+output      en_FD_iso;
 
 /* Arbitration Lost Capture Register */
 output        read_arbitration_lost_capture_reg;
@@ -549,6 +551,8 @@ can_register #(8) FD_CONTROL_REG
 );
 
 assign  en_FD_rx = fd_control_register[0];
+
+assign en_FD_iso = fd_control_register[0] & fd_control_register[1];
 
 /* Mode register */
 wire   [0:0] mode;
