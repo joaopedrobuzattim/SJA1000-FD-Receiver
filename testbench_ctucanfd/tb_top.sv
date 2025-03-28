@@ -148,7 +148,7 @@ begin
   write_CTU_CAN_FD_register(4'b0011, CTU_CAN_FD_BASE + MODE_OFFSET, 32'b00000000000000000000000000010000);
 
   // Settings Reg
-  write_CTU_CAN_FD_register(4'b1100, CTU_CAN_FD_BASE + MODE_OFFSET, 32'b00000000110000000000000000000000);
+  write_CTU_CAN_FD_register(4'b1100, CTU_CAN_FD_BASE + MODE_OFFSET, 32'b00000000010000000000000000000000);
 
   #50000;
 
@@ -161,9 +161,9 @@ begin
 
   write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_4_OFFSET, 32'b00000000000000000000000000000000);
 
-  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_5_OFFSET, 32'b10101010101010101010101010101010);
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_5_OFFSET, 32'b11111111111111111111111111111111);
 
-  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_6_OFFSET, 32'b10101010101010101010101010101010);
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_6_OFFSET, 32'b00000000000000000000000000000000);
 
   write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_7_OFFSET, 32'b10101010101010101010101010101010);
 
@@ -213,8 +213,8 @@ begin
       write_SJA1000_FD_register(8'd5, 8'hff); // acceptance mask
     end
 
-  // Habilitando recepcao de frames FD
-  write_SJA1000_FD_register(8'd9, 8'h1);
+  // Habilitando recepcao de frames FD ISO
+  write_SJA1000_FD_register(8'd9, 8'h3);
 
   repeat (50) @ (posedge clk);
 
@@ -225,6 +225,125 @@ begin
   // Escrevendo no registrador de TX COMMAND de CTU CAN FD
   write_CTU_CAN_FD_register(4'b0011, CTU_CAN_FD_BASE + TX_COMMAND_OFFSET, 32'b00000000000000000000000100000010);
 
+ #60000;
+
+  write_CTU_CAN_FD_register(4'b1100, CTU_CAN_FD_BASE + MODE_OFFSET, 32'b00000000000000000000000000000000);
+
+  // Sending non-ISO frame
+   
+  reg_rst = 1'b0;
+  #1000;
+  reg_rst = 1'b1;
+
+  #1000;
+
+  // Escrevendo em CTU CAN FD
+
+  // BTR
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + BTR_OFFSET, 32'b00001000001000001000001010001010);
+
+  // BTR FD
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + BTR_FD_OFFSET, 32'b00001000000100001000001010001010);
+
+  // Mode Reg
+  write_CTU_CAN_FD_register(4'b0011, CTU_CAN_FD_BASE + MODE_OFFSET, 32'b00000000000000000000000000010000);
+
+  // Settings Reg
+  write_CTU_CAN_FD_register(4'b1100, CTU_CAN_FD_BASE + MODE_OFFSET, 32'b00000000110000000000000000000000);
+
+  #50000;
+
+  // Escrevendo dados no buffer de transmissão
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_1_OFFSET, 32'b00000000000000000000001010001000);
+
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_2_OFFSET, 32'b10101010101010101010101010101010);
+
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_3_OFFSET, 32'b00000000000000000000000000000000);
+
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_4_OFFSET, 32'b00000000000000000000000000000000);
+
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_5_OFFSET, 32'b11111111111111111111111111111111);
+
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_6_OFFSET, 32'b00000000000000000000000000000000);
+
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_7_OFFSET, 32'b10101010101010101010101010101010);
+
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_8_OFFSET, 32'b10101010101010101010101010101010);
+
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_9_OFFSET, 32'b10101010101010101010101010101010);
+
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_10_OFFSET, 32'b10101010101010101010101010101010);
+
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_11_OFFSET, 32'b10101010101010101010101010101010);
+
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_12_OFFSET, 32'b10101010101010101010101010101010);
+
+  // Escrevendo em SJA1000 FD
+
+  // Entrando em Reset Mode
+  write_SJA1000_FD_register(8'd0, {7'h0, `CAN_MODE_RESET});
+  repeat (50) @ (posedge clk);
+
+
+  // Set Clock Divider register
+  extended_mode = 1'b1;
+  write_SJA1000_FD_register(8'd31, {extended_mode, 7'h0});    // Setting the extended mode
+
+ // Set bus timing register 0
+  write_16_SJA1000_FD_register(8'd6, {`CAN_TIMING0_SJW_FD, `CAN_TIMING0_BRP_FD, `CAN_TIMING0_SJW, `CAN_TIMING0_BRP});
+
+
+  // Set bus timing register 1
+  write_16_SJA1000_FD_register(8'd7, {`CAN_TIMING1_SAM_FD, `CAN_TIMING1_TSEG2_FD, `CAN_TIMING1_TSEG1_FD,`CAN_TIMING1_SAM, `CAN_TIMING1_TSEG2, `CAN_TIMING1_TSEG1});
+ 
+  // Set Acceptance Code and Acceptance Mask registers (
+  if (extended_mode)
+    begin
+      write_SJA1000_FD_register(8'd16, 8'ha6); // acceptance code 0
+      write_SJA1000_FD_register(8'd17, 8'hb0); // acceptance code 1
+      write_SJA1000_FD_register(8'd18, 8'h12); // acceptance code 2
+      write_SJA1000_FD_register(8'd19, 8'h30); // acceptance code 3
+      write_SJA1000_FD_register(8'd20, 8'hff); // acceptance mask 0
+      write_SJA1000_FD_register(8'd21, 8'hff); // acceptance mask 1
+      write_SJA1000_FD_register(8'd22, 8'hff); // acceptance mask 2
+      write_SJA1000_FD_register(8'd23, 8'hff); // acceptance mask 3
+    end
+  else
+    begin
+      write_SJA1000_FD_register(8'd4, 8'he8); // acceptance code
+      write_SJA1000_FD_register(8'd5, 8'hff); // acceptance mask
+    end
+
+  // Habilitando recepcao de frames FD ISO
+  write_SJA1000_FD_register(8'd9, 8'h1);
+
+  repeat (50) @ (posedge clk);
+
+  write_SJA1000_FD_register(8'd0, {7'h0, ~(`CAN_MODE_RESET)});
+
+  #50000;
+
+  // Escrevendo no registrador de TX COMMAND de CTU CAN FD
+  write_CTU_CAN_FD_register(4'b0011, CTU_CAN_FD_BASE + TX_COMMAND_OFFSET, 32'b00000000000000000000000100000010);
+#120000;
+
+  // Escrevendo no Buffer de transmissão do SJA1000
+  write_SJA1000_FD_register(8'h10, 8'h88);
+  write_SJA1000_FD_register(8'h11, 8'hA6);
+  write_SJA1000_FD_register(8'h12, 8'h00);
+  write_SJA1000_FD_register(8'h13, 8'h5A);
+  write_SJA1000_FD_register(8'h14, 8'hA8);
+  write_SJA1000_FD_register(8'h15, 8'hFF);
+  write_SJA1000_FD_register(8'h16, 8'hFF);
+  write_SJA1000_FD_register(8'h17, 8'hBC);
+  write_SJA1000_FD_register(8'h18, 8'hDE);
+  write_SJA1000_FD_register(8'h19, 8'hF0);
+  write_SJA1000_FD_register(8'h1A, 8'h0F);
+  write_SJA1000_FD_register(8'h1B, 8'hED);
+  write_SJA1000_FD_register(8'h1C, 8'hCB); 
+  
+  // SJA1000 Transmitindo
+  write_SJA1000_FD_register(8'h01, 8'h01);
 
   #120000;
   $stop;

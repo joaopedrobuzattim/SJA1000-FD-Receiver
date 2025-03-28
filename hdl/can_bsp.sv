@@ -365,8 +365,8 @@ module can_bsp
   input  wire  [7:0] error_warning_limit,
 
   /* FD Control Register  */
-  input en_FD_rx, /* Quando for 0, o controlador deverá operar como FD Tolerant */
-
+  input wire en_FD_rx, /* Quando for 0, o controlador deverá operar como FD Tolerant */
+  input wire en_FD_iso, /* Altera entre FD ISO (1) e FD non-ISO (0) */
 
   /* Rx Error Counter register */
   input  wire        we_rx_err_cnt,
@@ -471,6 +471,8 @@ reg     [2:0] bit_stuff_cnt;
 reg     [2:0] bit_stuff_cnt_tx;
 reg           tx_point_q;
 
+reg     [3:0] stuff_cnt;
+
 reg           rx_id1;
 reg           rx_rtr1;
 reg           rx_ide;
@@ -482,6 +484,7 @@ reg           rx_brs;
 reg           rx_esi;
 reg           rx_dlc;
 reg           rx_data;
+reg           rx_stuff_count;
 reg           rx_crc;
 reg           rx_crc_lim;
 reg           rx_ack;
@@ -578,7 +581,7 @@ wire          fd_skip_finished;
 wire    [4:0] error_capture_code_segment;
 wire          error_capture_code_direction;
 
-wire          bit_de_stuff;
+reg           bit_de_stuff;
 wire          bit_de_stuff_tx;
 
 wire          rule5;
@@ -597,6 +600,7 @@ wire          go_rx_brs;
 wire          go_rx_esi;
 wire          go_rx_dlc;
 wire          go_rx_data;
+wire          go_rx_stuff_count;
 wire          go_rx_crc;
 wire          go_rx_crc_lim;
 wire          go_rx_ack;
@@ -673,6 +677,7 @@ wire          bit_err_exc5;
 wire          bit_err_exc6;
 wire          error_flag_over;
 wire          overload_flag_over;
+wire          enable_crc_destuff;
 
 wire go_rx_inter_acf;
 wire go_error_frame_acf;
@@ -695,13 +700,29 @@ assign go_rx_dlc = FD_tolerant ? ( (~bit_de_stuff) & sample_point &  rx_r0 & (~g
 
 assign go_rx_data     = (~bit_de_stuff) & sample_point &  rx_dlc  & (bit_cnt[1:0] == 2'd3) & (~remote_rq);
 
+
+// Condicao para entrar no estado de Stuff Count:
+// Receber Frame FD E estar no estado DATA E operar como FD ISO E o valor de Bit Count ser igual ao valor do campo DLC
+// OU
+// Receber Frame FD E estar no estado DLC E operar como FD ISO E o valor do campo DLC ser Zero
+
+assign go_rx_stuff_count = (~bit_de_stuff) & sample_point & (fdf_brs_r) & (en_FD_iso) & (
+  (rx_data & (bit_cnt[8:0] == ((data_len<<3) - 1'b1))) 
+  | ( (rx_dlc & (bit_cnt[1:0] == 2'd3)) & (~sampled_bit) & (~(|data_len[2:0])) )
+);
+
 // Condicao para entrar no estado de CRC:
-// Estar no estado DLC e o valor do campo DLC ser Zero ou ser uma remote request
-// Ou estar no estado DATA e o valor de Bit Count for igual ao valor do campo DLC
+// Estar no estado DLC E o valor do campo DLC ser Zero OU ser uma remote request (E não operar como FD ISO)
+// OU
+// Estar no estado DATA E o valor de Bit Count for igual ao valor do campo DLC (E não operar como FD ISO)
+// OU
+// Estar no último bit do estado Stuff Count
 assign go_rx_crc = (~bit_de_stuff) & sample_point & (
-                    (rx_dlc & (bit_cnt[1:0] == 2'd3)) &
-                    ((~sampled_bit) & (~(|data_len[2:0])) | remote_rq)
-                    | (rx_data & (bit_cnt[8:0] == ((data_len<<3) - 1'b1)))
+                    (~en_FD_iso |  ~fdf_brs_r )  & 
+                    ( 
+                      (rx_dlc & (bit_cnt[1:0] == 2'd3)) & ((~sampled_bit) & (~(|data_len[2:0])) | remote_rq) | (rx_data & (bit_cnt[8:0] == ((data_len<<3) - 1'b1))) 
+                    )
+                    | (rx_stuff_count & bit_cnt[1:0] == 2'd3 )
                    );  // overflow works ok at max value (8<<3 = 64 = 0). 0-1 = 6'h3f
 
 
@@ -1015,7 +1036,7 @@ begin
     rx_dlc <= 1'b0;
   else if ( FD_tolerant & (go_rx_data | go_rx_crc | go_error_frame | go_rx_skip_fdf))
     rx_dlc <=#Tp 1'b0;
-  else if (go_rx_data | go_rx_crc | go_error_frame)
+  else if (go_rx_data | go_rx_crc | go_rx_stuff_count | go_error_frame)
     rx_dlc <=#Tp 1'b0;
   else if (go_rx_dlc)
     rx_dlc <=#Tp 1'b1;
@@ -1029,10 +1050,21 @@ begin
     rx_data <= 1'b0;
   else if (FD_tolerant & (go_rx_crc | go_error_frame | go_rx_skip_fdf))
     rx_data <=#Tp 1'b0;
-  else if (go_rx_crc | go_error_frame)
+  else if (go_rx_crc | go_rx_stuff_count | go_error_frame)
     rx_data <=#Tp 1'b0;
   else if (go_rx_data)
     rx_data <=#Tp 1'b1;
+end
+
+// Rx stuff count
+always @ (posedge clk or posedge rst)
+begin
+  if (rst)
+    rx_stuff_count <= 1'b0;
+  else if (go_rx_crc | go_error_frame)
+    rx_stuff_count <=#Tp 1'b0;
+  else if (go_rx_stuff_count)
+    rx_stuff_count <=#Tp 1'b1;
 end
 
 
@@ -1201,6 +1233,15 @@ begin
     tmp_data <=#Tp {tmp_data[6:0], sampled_bit};
 end
 
+// CRC Stuff Count
+always @ (posedge clk or posedge rst)
+begin
+  if (rst)
+    stuff_cnt <= 4'b0;
+  else if (sample_point & rx_stuff_count & (~bit_de_stuff))
+    stuff_cnt <=#Tp {stuff_cnt[2:0], sampled_bit};
+end
+
 
 always @ (posedge clk or posedge rst)
 begin
@@ -1257,6 +1298,22 @@ can_crc_destuff can_crc_destuff
   .crc_21_o(crc_in_21)
 );
 
+// Stuff bit must be detected on first bit of rx_stuff_count according to ISO
+wire bit_de_stuff_rx_stuff_count;
+reg [2:0] bit_cnt_rx_stuff_cnt;
+
+always_ff @(posedge clk, posedge rst) begin
+  if(rst)
+    bit_cnt_rx_stuff_cnt <= 3'b0;
+  else if (sample_point & rx_stuff_count)
+    bit_cnt_rx_stuff_cnt <= bit_cnt_rx_stuff_cnt + 1'b1;
+  else if(sample_point & (go_rx_crc | go_error_frame))
+    bit_cnt_rx_stuff_cnt <= 3'b0;
+end
+
+
+assign bit_de_stuff_rx_stuff_count = rx_stuff_count & ( bit_cnt_rx_stuff_cnt == 3'b0);
+
 // bit_cnt (Conta os bits em cada estado da FSM, utilizado para contar estados que sao compostos de mais de um bit)
 always @ (posedge clk or posedge rst)
 begin
@@ -1265,10 +1322,10 @@ begin
   else if (FD_tolerant & ( go_rx_id1 | go_rx_id2 | go_rx_dlc | go_rx_data | go_rx_crc |
            go_rx_ack | go_rx_eof | go_rx_inter | go_error_frame | go_overload_frame | go_rx_skip_fdf ) )
     bit_cnt <=#Tp 9'd0;
-  else if (go_rx_id1 | go_rx_id2 | go_rx_dlc | go_rx_data | go_rx_crc |
+  else if (go_rx_id1 | go_rx_id2 | go_rx_dlc | go_rx_data | go_rx_stuff_count | go_rx_crc |
           go_rx_ack | go_rx_eof | go_rx_inter | go_error_frame | go_overload_frame)
     bit_cnt <=#Tp 9'd0;
-  else if ( sample_point & (~bit_de_stuff) )
+  else if ( sample_point & (~bit_de_stuff) & (~bit_de_stuff_rx_stuff_count) )
     bit_cnt <=#Tp bit_cnt + 1'b1;
 end
 
@@ -1340,14 +1397,50 @@ begin
 end
 
 
-assign bit_de_stuff = (bit_stuff_cnt == 3'h5) & (~rx_crc | ~edl);
+// Bit Stuff detection on RX Must Be Multiplexed
+always_comb begin
+  if(edl & (rx_crc)) begin
+    bit_de_stuff = 1'b0;
+  end
+  else begin
+    bit_de_stuff = (bit_stuff_cnt == 3'h5);
+  end
+end
+
 assign bit_de_stuff_tx = bit_stuff_cnt_tx == 3'h5;
 
 
+// STUFF COUNT CHECK - Modulo 8 counter
+reg  [2:0] bit_stuff_before_fixed_stuff_bit;
+reg  [2:0] bit_stuff_before_fixed_stuff_bit_mod_8;
+wire [2:0] bit_stuff_gray_counter;
+wire       stuff_cnt_parity_check;        
+
+always @ (posedge clk or posedge rst)
+begin
+  if (rst)
+  begin
+    bit_stuff_before_fixed_stuff_bit <=#Tp 3'b0;
+  end
+  else if(sample_point & bit_de_stuff & en_FD_iso)
+  begin
+    if(bit_stuff_before_fixed_stuff_bit == 3'd7 ) begin
+      bit_stuff_before_fixed_stuff_bit <=#Tp 1'b0;
+    end else begin
+      bit_stuff_before_fixed_stuff_bit <=#Tp bit_stuff_before_fixed_stuff_bit + 1'b1;
+    end
+  end
+  else if (sample_point & en_FD_iso & (go_rx_crc | go_error_frame)) begin
+    bit_stuff_before_fixed_stuff_bit <=#Tp 3'b0; 
+  end
+end
+
+assign bit_stuff_before_fixed_stuff_bit_mod_8 = bit_stuff_before_fixed_stuff_bit % 8;
+assign bit_stuff_gray_counter = bit_stuff_before_fixed_stuff_bit_mod_8 ^ (bit_stuff_before_fixed_stuff_bit_mod_8 >> 1);
+assign stuff_cnt_parity_check = (( stuff_cnt[3] ^ stuff_cnt[2] ^ stuff_cnt[1] ) == stuff_cnt[0]);
 
 // stuff_err
-assign stuff_err = (sample_point & bit_stuff_cnt_en & bit_de_stuff & (sampled_bit == sampled_bit_q)) | (fixed_stuff_bit_error);
-
+assign stuff_err = (sample_point & bit_stuff_cnt_en & bit_de_stuff & (sampled_bit == sampled_bit_q));
 
 
 // Generating delayed signals
@@ -1393,6 +1486,8 @@ begin
     crc_err <=#Tp crc_in_17 != calculated_crc_17;
   else if (go_rx_ack & edl & data_len > 7'd16)
     crc_err <=#Tp crc_in_21 != calculated_crc_21;
+  else if (go_rx_crc & edl & en_FD_iso )
+    crc_err <=#Tp ( stuff_cnt[3:1] != bit_stuff_gray_counter ) & stuff_cnt_parity_check;
 end
 
 
@@ -1400,7 +1495,8 @@ end
 assign form_err = sample_point & ( ((~bit_de_stuff) & rx_crc_lim & (~sampled_bit)                  ) |
                                    (                  rx_ack_lim & (~sampled_bit)                  ) |
                                    ((eof_cnt < 3'd6)& rx_eof     & (~sampled_bit) & (~transmitter) ) |
-                                   (                & rx_eof     & (~sampled_bit) &   transmitter  )
+                                   (                & rx_eof     & (~sampled_bit) &   transmitter  ) |
+                                   (fixed_stuff_bit_error)
                                  );
 
 
@@ -1495,7 +1591,8 @@ can_crc i_can_crc_rx
   .clk(clk),
   .data(sampled_bit),
   .stuff_bit(bit_de_stuff),
-  .enable(crc_enable & sample_point & (~bit_de_stuff)),
+  .FD_iso(en_FD_iso),
+  .enable(crc_enable & sample_point & (~bit_de_stuff_rx_stuff_count)),
   .initialize(go_crc_enable),
   .crc_15(calculated_crc_15),
   .crc_17(calculated_crc_17),
@@ -2429,6 +2526,7 @@ typedef enum { BUS_IDLE,
               ESI,
               DLC,
               DATA,
+              STUFF_COUNT,
               CRC,
               CRC_LIM,
               ACK,
@@ -2533,6 +2631,8 @@ begin
           currentState <= DATA;
         else if (rx_crc)
           currentState <= CRC;
+        else if (rx_stuff_count)
+          currentState <= STUFF_COUNT;
         else if (error_frame)
           currentState <= TRANSMITING_ERROR;
         else
@@ -2542,8 +2642,17 @@ begin
           currentState <= CRC;
         else if (error_frame)
           currentState <= TRANSMITING_ERROR;
+        else if (rx_stuff_count)
+          currentState <= STUFF_COUNT;
         else
           currentState <= DATA;
+      STUFF_COUNT:
+        if (rx_crc)
+          currentState <= CRC;
+        else if (error_frame)
+          currentState <= TRANSMITING_ERROR;
+        else
+          currentState <= STUFF_COUNT;
       CRC:
         if (rx_crc_lim)
           currentState <= CRC_LIM;
