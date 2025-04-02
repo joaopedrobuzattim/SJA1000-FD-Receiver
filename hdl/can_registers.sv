@@ -179,9 +179,7 @@ module can_registers
   addr_read,
   addr_write,
   data_in,
-  data_in_16,
   data_out,
-  data_out_16,
   irq_n,
 
   sample_point,
@@ -192,6 +190,7 @@ module can_registers
   rx_err_cnt,
   tx_err_cnt,
   transmit_status,
+  transmit_buffer_status,
   receive_status,
   tx_successful,
   need_to_tx,
@@ -260,7 +259,6 @@ module can_registers
 
   /* Clock Divider register */
   extended_mode,
-  clkout,
 
 
   /* This section is for BASIC and EXTENDED mode */
@@ -280,28 +278,8 @@ module can_registers
   /* Acceptance mask register */
   acceptance_mask_1,
   acceptance_mask_2,
-  acceptance_mask_3,
+  acceptance_mask_3
   /* End: This section is for EXTENDED mode */
-
-  /* Tx data registers. Holding identifier (basic mode), tx frame information (extended mode) and data */
-  tx_data_0,
-  tx_data_1,
-  tx_data_2,
-  tx_data_3,
-  tx_data_4,
-  tx_data_5,
-  tx_data_6,
-  tx_data_7,
-  tx_data_8,
-  tx_data_9,
-  tx_data_10,
-  tx_data_11,
-  tx_data_12
-  /* End: Tx data registers */
-
-
-
-
 );
 
 input         clk;
@@ -311,12 +289,10 @@ input         we;
 input   [7:0] addr_read;
 input   [7:0] addr_write;
 input   [7:0] data_in;
-input   [15:0] data_in_16;
 
 output  [7:0] data_out;
-output  [15:0] data_out_16;
+
 reg     [7:0] data_out;
-reg     [15:0] data_out_16;
 
 output        irq_n;
 
@@ -325,6 +301,7 @@ input         transmitting;
 input         set_reset_mode;
 input         node_bus_off;
 input         error_status;
+output        transmit_buffer_status;
 input   [7:0] rx_err_cnt;
 input   [7:0] tx_err_cnt;
 input         transmit_status;
@@ -397,8 +374,6 @@ output        we_tx_err_cnt;
 
 /* Clock Divider register */
 output        extended_mode;
-output        clkout;
-
 
 /* This section is for BASIC and EXTENDED mode */
 /* Acceptance code register */
@@ -422,23 +397,6 @@ output  [7:0] acceptance_mask_2;
 output  [7:0] acceptance_mask_3;
 
 /* End: This section is for EXTENDED mode */
-
-/* Tx data registers. Holding identifier (basic mode), tx frame information (extended mode) and data */
-output  [7:0] tx_data_0;
-output  [7:0] tx_data_1;
-output  [7:0] tx_data_2;
-output  [7:0] tx_data_3;
-output  [7:0] tx_data_4;
-output  [7:0] tx_data_5;
-output  [7:0] tx_data_6;
-output  [7:0] tx_data_7;
-output  [7:0] tx_data_8;
-output  [7:0] tx_data_9;
-output  [7:0] tx_data_10;
-output  [7:0] tx_data_11;
-output  [7:0] tx_data_12;
-/* End: Tx data registers */
-
 
 reg           tx_successful_q;
 reg           overrun_q;
@@ -469,10 +427,12 @@ assign cs = 1'b1;
 wire we_mode                  = cs & we & (addr_write == 8'd0);
 wire we_command               = cs & we & (addr_write == 8'd1);
 wire we_bus_timing_0          = cs & we & (addr_write == 8'd6) & reset_mode;
+wire we_bus_timing_0_FD       = (extended_mode & cs & we & (addr_write == 8'd25) & reset_mode);
 wire we_bus_timing_1          = cs & we & (addr_write == 8'd7) & reset_mode;
+wire we_bus_timing_1_FD       = (extended_mode & cs & we & (addr_write == 8'd26) & reset_mode);
 
 /* FD Data Bit Rate Register  */
-wire we_fd_control_register = cs & we & (addr_write == 8'd9) & reset_mode;
+wire we_fd_control_register = (extended_mode & cs & we & (addr_write == 8'd24) & reset_mode);
 
 wire we_clock_divider_low     = cs & we & (addr_write == 8'd31);
 wire we_clock_divider_hi      = we_clock_divider_low & reset_mode;
@@ -485,19 +445,6 @@ assign read_error_code_capture_reg = read & extended_mode & (addr_read == 8'd12)
 /* This section is for BASIC and EXTENDED mode */
 wire we_acceptance_code_0       = cs & we &   reset_mode  & ((~extended_mode) & (addr_write == 8'd4)  | extended_mode & (addr_write == 8'd16));
 wire we_acceptance_mask_0       = cs & we &   reset_mode  & ((~extended_mode) & (addr_write == 8'd5)  | extended_mode & (addr_write == 8'd20));
-wire we_tx_data_0               = cs & we & (~reset_mode) & ((~extended_mode) & (addr_write == 8'd10) | extended_mode & (addr_write == 8'd16)) & transmit_buffer_status;
-wire we_tx_data_1               = cs & we & (~reset_mode) & ((~extended_mode) & (addr_write == 8'd11) | extended_mode & (addr_write == 8'd17)) & transmit_buffer_status;
-wire we_tx_data_2               = cs & we & (~reset_mode) & ((~extended_mode) & (addr_write == 8'd12) | extended_mode & (addr_write == 8'd18)) & transmit_buffer_status;
-wire we_tx_data_3               = cs & we & (~reset_mode) & ((~extended_mode) & (addr_write == 8'd13) | extended_mode & (addr_write == 8'd19)) & transmit_buffer_status;
-wire we_tx_data_4               = cs & we & (~reset_mode) & ((~extended_mode) & (addr_write == 8'd14) | extended_mode & (addr_write == 8'd20)) & transmit_buffer_status;
-wire we_tx_data_5               = cs & we & (~reset_mode) & ((~extended_mode) & (addr_write == 8'd15) | extended_mode & (addr_write == 8'd21)) & transmit_buffer_status;
-wire we_tx_data_6               = cs & we & (~reset_mode) & ((~extended_mode) & (addr_write == 8'd16) | extended_mode & (addr_write == 8'd22)) & transmit_buffer_status;
-wire we_tx_data_7               = cs & we & (~reset_mode) & ((~extended_mode) & (addr_write == 8'd17) | extended_mode & (addr_write == 8'd23)) & transmit_buffer_status;
-wire we_tx_data_8               = cs & we & (~reset_mode) & ((~extended_mode) & (addr_write == 8'd18) | extended_mode & (addr_write == 8'd24)) & transmit_buffer_status;
-wire we_tx_data_9               = cs & we & (~reset_mode) & ((~extended_mode) & (addr_write == 8'd19) | extended_mode & (addr_write == 8'd25)) & transmit_buffer_status;
-wire we_tx_data_10              = cs & we & (~reset_mode) & (                                     extended_mode & (addr_write == 8'd26)) & transmit_buffer_status;
-wire we_tx_data_11              = cs & we & (~reset_mode) & (                                     extended_mode & (addr_write == 8'd27)) & transmit_buffer_status;
-wire we_tx_data_12              = cs & we & (~reset_mode) & (                                     extended_mode & (addr_write == 8'd28)) & transmit_buffer_status;
 /* End: This section is for BASIC and EXTENDED mode */
 
 
@@ -548,7 +495,7 @@ can_register #(8) FD_CONTROL_REG
   .clk(clk)
 );
 
-assign  en_FD_rx = fd_control_register[0];
+assign en_FD_rx = fd_control_register[0];
 
 assign en_FD_iso = fd_control_register[0] & fd_control_register[1];
 
@@ -783,10 +730,10 @@ assign receive_irq_en_ext           = irq_en_ext[0];
 /* End Bus Timing 0 register */
 
 
-/* Bus Timing 0 register (16-bit reg) */
-wire   [15:0] bus_timing_0;
-can_register #(16) BUS_TIMING_0_REG
-( .data_in(data_in_16),
+/* Bus Timing 0 register */
+wire   [7:0] bus_timing_0;
+can_register #(8) BUS_TIMING_0_REG
+( .data_in(data_in),
   .data_out(bus_timing_0),
   .we(we_bus_timing_0),
   .clk(clk)
@@ -794,15 +741,13 @@ can_register #(16) BUS_TIMING_0_REG
 
 assign baud_r_presc = bus_timing_0[5:0];
 assign sync_jump_width = bus_timing_0[7:6];
-assign baud_r_presc_fd = bus_timing_0[13:8];
-assign sync_jump_width_fd = bus_timing_0[15:14];
 /* End Bus Timing 0 register */
 
 
-/* Bus Timing 1 register (16-bit reg) */
-wire   [15:0] bus_timing_1;
-can_register #(16) BUS_TIMING_1_REG
-( .data_in(data_in_16),
+/* Bus Timing 1 register */
+wire   [7:0] bus_timing_1;
+can_register #(8) BUS_TIMING_1_REG
+( .data_in(data_in),
   .data_out(bus_timing_1),
   .we(we_bus_timing_1),
   .clk(clk)
@@ -811,10 +756,36 @@ can_register #(16) BUS_TIMING_1_REG
 assign time_segment1 = bus_timing_1[3:0];
 assign time_segment2 = bus_timing_1[6:4];
 assign triple_sampling = bus_timing_1[7];
-assign time_segment1_fd = bus_timing_1[11:8];
-assign time_segment2_fd = bus_timing_1[14:12];
-assign triple_sampling_fd = bus_timing_1[15];
+
 /* End Bus Timing 1 register */
+
+/* Bus Timing 0 register */
+wire   [7:0] bus_timing_0_FD;
+can_register #(8) BUS_TIMING_0_REG_FD
+( .data_in(data_in),
+  .data_out(bus_timing_0_FD),
+  .we(we_bus_timing_0_FD),
+  .clk(clk)
+);
+
+assign baud_r_presc_fd = bus_timing_0_FD[5:0];
+assign sync_jump_width_fd = bus_timing_0_FD[7:6];
+/* End Bus Timing 0 register */
+
+
+/* Bus Timing 1 - FD register */
+wire   [7:0] bus_timing_1_FD;
+can_register #(8) BUS_TIMING_1_REG_FD
+( .data_in(data_in),
+  .data_out(bus_timing_1_FD),
+  .we(we_bus_timing_1_FD),
+  .clk(clk)
+);
+
+assign time_segment1_fd = bus_timing_1_FD[3:0];
+assign time_segment2_fd = bus_timing_1_FD[6:4];
+assign triple_sampling_fd = bus_timing_1_FD[7];
+/* End Bus Timing 1 - FD register */
 
 
 /* Error Warning Limit register */
@@ -831,11 +802,6 @@ can_register_asyn #(8, 96) ERROR_WARNING_REG
 
 /* Clock Divider register */
 wire   [7:0] clock_divider;
-wire         clock_off;
-wire   [2:0] cd;
-reg    [2:0] clkout_div;
-reg    [2:0] clkout_cnt;
-reg          clkout_tmp;
 
 can_register_asyn #(1, 0) CLOCK_DIVIDER_REG_7
 ( .data_in(data_in[7]),
@@ -864,56 +830,6 @@ can_register_asyn #(3, 0) CLOCK_DIVIDER_REG_LOW
 );
 
 assign extended_mode = clock_divider[7];
-assign clock_off     = clock_divider[3];
-assign cd[2:0]       = clock_divider[2:0];
-
-
-
-always @ (cd)
-begin
-  case (cd)                       /* synthesis full_case parallel_case */
-    3'b000 : clkout_div = 3'd0;
-    3'b001 : clkout_div = 3'd1;
-    3'b010 : clkout_div = 3'd2;
-    3'b011 : clkout_div = 3'd3;
-    3'b100 : clkout_div = 3'd4;
-    3'b101 : clkout_div = 3'd5;
-    3'b110 : clkout_div = 3'd6;
-    3'b111 : clkout_div = 3'd0;
-  endcase
-end
-
-
-
-always @ (posedge clk or posedge rst)
-begin
-  if (rst)
-    clkout_cnt <= 3'h0;
-  else if (clkout_cnt == clkout_div)
-    clkout_cnt <= 3'h0;
-  else
-    clkout_cnt <= clkout_cnt + 1'b1;
-end
-
-
-
-always @ (posedge clk or posedge rst)
-begin
-  if (rst)
-    clkout_tmp <= 1'b0;
-  else if (clkout_cnt == clkout_div)
-    clkout_tmp <= ~clkout_tmp;
-end
-
-
-assign clkout = clock_off ? 1'b1 : ((&cd)? clk : clkout_tmp);
-
-
-
-/* End Clock Divider register */
-
-
-
 
 /* This section is for BASIC and EXTENDED mode */
 
@@ -936,140 +852,6 @@ can_register #(8) ACCEPTANCE_MASK_REG0
 );
 /* End: Acceptance mask register */
 /* End: This section is for BASIC and EXTENDED mode */
-
-
-/* Tx data 0 register. */
-can_register #(8) TX_DATA_REG0
-( .data_in(data_in),
-  .data_out(tx_data_0),
-  .we(we_tx_data_0),
-  .clk(clk)
-);
-/* End: Tx data 0 register. */
-
-
-/* Tx data 1 register. */
-can_register #(8) TX_DATA_REG1
-( .data_in(data_in),
-  .data_out(tx_data_1),
-  .we(we_tx_data_1),
-  .clk(clk)
-);
-/* End: Tx data 1 register. */
-
-
-/* Tx data 2 register. */
-can_register #(8) TX_DATA_REG2
-( .data_in(data_in),
-  .data_out(tx_data_2),
-  .we(we_tx_data_2),
-  .clk(clk)
-);
-/* End: Tx data 2 register. */
-
-
-/* Tx data 3 register. */
-can_register #(8) TX_DATA_REG3
-( .data_in(data_in),
-  .data_out(tx_data_3),
-  .we(we_tx_data_3),
-  .clk(clk)
-);
-/* End: Tx data 3 register. */
-
-
-/* Tx data 4 register. */
-can_register #(8) TX_DATA_REG4
-( .data_in(data_in),
-  .data_out(tx_data_4),
-  .we(we_tx_data_4),
-  .clk(clk)
-);
-/* End: Tx data 4 register. */
-
-
-/* Tx data 5 register. */
-can_register #(8) TX_DATA_REG5
-( .data_in(data_in),
-  .data_out(tx_data_5),
-  .we(we_tx_data_5),
-  .clk(clk)
-);
-/* End: Tx data 5 register. */
-
-
-/* Tx data 6 register. */
-can_register #(8) TX_DATA_REG6
-( .data_in(data_in),
-  .data_out(tx_data_6),
-  .we(we_tx_data_6),
-  .clk(clk)
-);
-/* End: Tx data 6 register. */
-
-
-/* Tx data 7 register. */
-can_register #(8) TX_DATA_REG7
-( .data_in(data_in),
-  .data_out(tx_data_7),
-  .we(we_tx_data_7),
-  .clk(clk)
-);
-/* End: Tx data 7 register. */
-
-
-/* Tx data 8 register. */
-can_register #(8) TX_DATA_REG8
-( .data_in(data_in),
-  .data_out(tx_data_8),
-  .we(we_tx_data_8),
-  .clk(clk)
-);
-/* End: Tx data 8 register. */
-
-
-/* Tx data 9 register. */
-can_register #(8) TX_DATA_REG9
-( .data_in(data_in),
-  .data_out(tx_data_9),
-  .we(we_tx_data_9),
-  .clk(clk)
-);
-/* End: Tx data 9 register. */
-
-
-/* Tx data 10 register. */
-can_register #(8) TX_DATA_REG10
-( .data_in(data_in),
-  .data_out(tx_data_10),
-  .we(we_tx_data_10),
-  .clk(clk)
-);
-/* End: Tx data 10 register. */
-
-
-/* Tx data 11 register. */
-can_register #(8) TX_DATA_REG11
-( .data_in(data_in),
-  .data_out(tx_data_11),
-  .we(we_tx_data_11),
-  .clk(clk)
-);
-/* End: Tx data 11 register. */
-
-
-/* Tx data 12 register. */
-can_register #(8) TX_DATA_REG12
-( .data_in(data_in),
-  .data_out(tx_data_12),
-  .we(we_tx_data_12),
-  .clk(clk)
-);
-/* End: Tx data 12 register. */
-
-
-
-
 
 /* This section is for EXTENDED mode */
 
@@ -1135,19 +917,6 @@ can_register #(8) ACCEPTANCE_MASK_REG3
 
 /* End: This section is for EXTENDED mode */
 
-// Reading data from 16-bit registers 
-always @ (*)
-begin
-  case({extended_mode, addr_read[4:0]})                                    // synthesis parallel_case
-    {1'h1, 5'd06} :  data_out_16 = bus_timing_0;                           // extended mode
-    {1'h1, 5'd07} :  data_out_16 = bus_timing_1;                           // extended mode
-    {1'h0, 5'd06} :  data_out_16 = reset_mode? bus_timing_0 : 16'hff;      // basic mode
-    {1'h0, 5'd07} :  data_out_16 = reset_mode? bus_timing_1 : 16'hff;      // basic mode
-    default :  data_out_16 = 16'h0;                                        // the rest is read as 0
-  endcase
-end
-
-
 // Reading data from 8-bit registers 
 always @ (*)
 begin
@@ -1186,16 +955,16 @@ begin
     {1'h0, 5'd04} :  data_out = reset_mode? acceptance_code_0 : 8'hff;  // basic mode
     {1'h0, 5'd05} :  data_out = reset_mode? acceptance_mask_0 : 8'hff;  // basic mode
     {1'h0, 5'd09} :  data_out = reset_mode? {7'b0000, en_FD_rx} : 8'hff;// extended mode ( SJA1000 Test Register )
-    {1'h0, 5'd10} :  data_out = reset_mode? 8'hff : tx_data_0;          // basic mode
-    {1'h0, 5'd11} :  data_out = reset_mode? 8'hff : tx_data_1;          // basic mode
-    {1'h0, 5'd12} :  data_out = reset_mode? 8'hff : tx_data_2;          // basic mode
-    {1'h0, 5'd13} :  data_out = reset_mode? 8'hff : tx_data_3;          // basic mode
-    {1'h0, 5'd14} :  data_out = reset_mode? 8'hff : tx_data_4;          // basic mode
-    {1'h0, 5'd15} :  data_out = reset_mode? 8'hff : tx_data_5;          // basic mode
-    {1'h0, 5'd16} :  data_out = reset_mode? 8'hff : tx_data_6;          // basic mode
-    {1'h0, 5'd17} :  data_out = reset_mode? 8'hff : tx_data_7;          // basic mode
-    {1'h0, 5'd18} :  data_out = reset_mode? 8'hff : tx_data_8;          // basic mode
-    {1'h0, 5'd19} :  data_out = reset_mode? 8'hff : tx_data_9;          // basic mode
+    {1'h0, 5'd10} :  data_out = 8'hff;                                  // basic mode
+    {1'h0, 5'd11} :  data_out = 8'hff;                                  // basic mode
+    {1'h0, 5'd12} :  data_out = 8'hff;                                  // basic mode
+    {1'h0, 5'd13} :  data_out = 8'hff;                                  // basic mode
+    {1'h0, 5'd14} :  data_out = 8'hff;                                  // basic mode
+    {1'h0, 5'd15} :  data_out = 8'hff;                                  // basic mode
+    {1'h0, 5'd16} :  data_out = 8'hff;                                  // basic mode
+    {1'h0, 5'd17} :  data_out = 8'hff;                                  // basic mode
+    {1'h0, 5'd18} :  data_out = 8'hff;                                  // basic mode
+    {1'h0, 5'd19} :  data_out = 8'hff;                                  // basic mode
     {1'h0, 5'd31} :  data_out = clock_divider;                          // basic mode
     default :  data_out = 8'h0;                                   // the rest is read as 0
   endcase

@@ -17,16 +17,16 @@ struct {
   logic reg_we;
   logic reg_re;
   logic [7:0] reg_data_in;
-  logic [15:0] reg_data_in_16;
   logic [7:0] can_reg_data_out;
-  logic [15:0] can_reg_data_out_16;
   logic [7:0] reg_addr_read;
   logic [7:0] reg_addr_write;
   logic rx_i;
   logic tx_o;
   logic bus_off_on;
   logic [1:0] irqns;
-  logic clkout;
+  logic tx_we_i;
+  logic [3:0] tx_addr_i;
+  logic [7:0] tx_data_i;
 } t_sja1000_fd_signals;
 
 // Sinais para conectar as portas de CTU CAN FD
@@ -86,18 +86,18 @@ can_top_raw i_can_top
   .reg_we_i(t_sja1000_fd_signals.reg_we),
   .reg_re_i(t_sja1000_fd_signals.reg_re),
   .reg_data_in(t_sja1000_fd_signals.reg_data_in),
-  .reg_data_in_16(t_sja1000_fd_signals.reg_data_in_16),
   .reg_data_out(t_sja1000_fd_signals.can_reg_data_out),
-  .reg_data_out_16(t_sja1000_fd_signals.can_reg_data_out_16),
   .reg_addr_read_i(t_sja1000_fd_signals.reg_addr_read),
   .reg_addr_write_i(t_sja1000_fd_signals.reg_addr_write),
+  .tx_we_i(t_sja1000_fd_signals.tx_we_i),
+  .tx_addr_i(t_sja1000_fd_signals.tx_addr_i),
+  .tx_data_i(t_sja1000_fd_signals.tx_data_i),
   .reg_rst_i(~reg_rst),
   .clk_i(clk),
   .rx_i(t_sja1000_fd_signals.tx_o & t_ctu_can_fd_signals.can_tx),
   .tx_o(t_sja1000_fd_signals.tx_o),
   .bus_off_on(t_sja1000_fd_signals.bus_off_on),
-  .irq_on(t_sja1000_fd_signals.irqns[0]),
-  .clkout_o(t_sja1000_fd_signals.clkout)
+  .irq_on(t_sja1000_fd_signals.irqns[0])
 );
 
 // Instanciando CTU CAN FD
@@ -188,13 +188,18 @@ begin
   extended_mode = 1'b1;
   write_SJA1000_FD_register(8'd31, {extended_mode, 7'h0});    // Setting the extended mode
 
- // Set bus timing register 0
-  write_16_SJA1000_FD_register(8'd6, {`CAN_TIMING0_SJW_FD, `CAN_TIMING0_BRP_FD, `CAN_TIMING0_SJW, `CAN_TIMING0_BRP});
+  // Set bus timing register 0
+  write_SJA1000_FD_register(8'd6, {`CAN_TIMING0_SJW, `CAN_TIMING0_BRP});
 
+  // Set bus timing register 0 FD
+  write_SJA1000_FD_register(8'd25, {`CAN_TIMING0_SJW_FD, `CAN_TIMING0_BRP_FD});
 
   // Set bus timing register 1
-  write_16_SJA1000_FD_register(8'd7, {`CAN_TIMING1_SAM_FD, `CAN_TIMING1_TSEG2_FD, `CAN_TIMING1_TSEG1_FD,`CAN_TIMING1_SAM, `CAN_TIMING1_TSEG2, `CAN_TIMING1_TSEG1});
- 
+  write_SJA1000_FD_register(8'd7, {`CAN_TIMING1_SAM, `CAN_TIMING1_TSEG2, `CAN_TIMING1_TSEG1});
+  
+  // Set bus timing register 1 FD
+  write_SJA1000_FD_register(8'd26, {`CAN_TIMING1_SAM_FD, `CAN_TIMING1_TSEG2_FD, `CAN_TIMING1_TSEG1_FD});
+
   // Set Acceptance Code and Acceptance Mask registers (
   if (extended_mode)
     begin
@@ -214,7 +219,7 @@ begin
     end
 
   // Habilitando recepcao de frames FD ISO
-  write_SJA1000_FD_register(8'd9, 8'h3);
+  write_SJA1000_FD_register(8'd24, 8'h3);
 
   repeat (50) @ (posedge clk);
 
@@ -225,7 +230,7 @@ begin
   // Escrevendo no registrador de TX COMMAND de CTU CAN FD
   write_CTU_CAN_FD_register(4'b0011, CTU_CAN_FD_BASE + TX_COMMAND_OFFSET, 32'b00000000000000000000000100000010);
 
- #60000;
+ #120000;
 
   write_CTU_CAN_FD_register(4'b1100, CTU_CAN_FD_BASE + MODE_OFFSET, 32'b00000000000000000000000000000000);
 
@@ -289,12 +294,17 @@ begin
   extended_mode = 1'b1;
   write_SJA1000_FD_register(8'd31, {extended_mode, 7'h0});    // Setting the extended mode
 
- // Set bus timing register 0
-  write_16_SJA1000_FD_register(8'd6, {`CAN_TIMING0_SJW_FD, `CAN_TIMING0_BRP_FD, `CAN_TIMING0_SJW, `CAN_TIMING0_BRP});
+  // Set bus timing register 0
+  write_SJA1000_FD_register(8'd6, {`CAN_TIMING0_SJW, `CAN_TIMING0_BRP});
 
+  // Set bus timing register 0 FD
+  write_SJA1000_FD_register(8'd25, {`CAN_TIMING0_SJW_FD, `CAN_TIMING0_BRP_FD});
 
   // Set bus timing register 1
-  write_16_SJA1000_FD_register(8'd7, {`CAN_TIMING1_SAM_FD, `CAN_TIMING1_TSEG2_FD, `CAN_TIMING1_TSEG1_FD,`CAN_TIMING1_SAM, `CAN_TIMING1_TSEG2, `CAN_TIMING1_TSEG1});
+  write_SJA1000_FD_register(8'd7, {`CAN_TIMING1_SAM, `CAN_TIMING1_TSEG2, `CAN_TIMING1_TSEG1});
+  
+  // Set bus timing register 1 FD
+  write_SJA1000_FD_register(8'd26, {`CAN_TIMING1_SAM_FD, `CAN_TIMING1_TSEG2_FD, `CAN_TIMING1_TSEG1_FD});
  
   // Set Acceptance Code and Acceptance Mask registers (
   if (extended_mode)
@@ -315,7 +325,7 @@ begin
     end
 
   // Habilitando recepcao de frames FD ISO
-  write_SJA1000_FD_register(8'd9, 8'h1);
+  write_SJA1000_FD_register(8'd24, 8'h1);
 
   repeat (50) @ (posedge clk);
 
@@ -328,19 +338,19 @@ begin
 #120000;
 
   // Escrevendo no Buffer de transmissão do SJA1000
-  write_SJA1000_FD_register(8'h10, 8'h88);
-  write_SJA1000_FD_register(8'h11, 8'hA6);
-  write_SJA1000_FD_register(8'h12, 8'h00);
-  write_SJA1000_FD_register(8'h13, 8'h5A);
-  write_SJA1000_FD_register(8'h14, 8'hA8);
-  write_SJA1000_FD_register(8'h15, 8'hFF);
-  write_SJA1000_FD_register(8'h16, 8'hFF);
-  write_SJA1000_FD_register(8'h17, 8'hBC);
-  write_SJA1000_FD_register(8'h18, 8'hDE);
-  write_SJA1000_FD_register(8'h19, 8'hF0);
-  write_SJA1000_FD_register(8'h1A, 8'h0F);
-  write_SJA1000_FD_register(8'h1B, 8'hED);
-  write_SJA1000_FD_register(8'h1C, 8'hCB); 
+  write_SJA1000_FD_tx_buffer(4'h00, 8'h88);
+  write_SJA1000_FD_tx_buffer(4'h01, 8'hA6);
+  write_SJA1000_FD_tx_buffer(4'h02, 8'h00);
+  write_SJA1000_FD_tx_buffer(4'h03, 8'h5A);
+  write_SJA1000_FD_tx_buffer(4'h04, 8'hA8);
+  write_SJA1000_FD_tx_buffer(4'h05, 8'hFF);
+  write_SJA1000_FD_tx_buffer(4'h06, 8'hFF);
+  write_SJA1000_FD_tx_buffer(4'h07, 8'hBC);
+  write_SJA1000_FD_tx_buffer(4'h08, 8'hDE);
+  write_SJA1000_FD_tx_buffer(4'h09, 8'hF0);
+  write_SJA1000_FD_tx_buffer(4'h0A, 8'h0F);
+  write_SJA1000_FD_tx_buffer(4'h0B, 8'hED);
+  write_SJA1000_FD_tx_buffer(4'h0C, 8'hCB); 
   
   // SJA1000 Transmitindo
   write_SJA1000_FD_register(8'h01, 8'h01);
@@ -391,21 +401,21 @@ task write_SJA1000_FD_register;
   end
 endtask
 
-task write_16_SJA1000_FD_register;
-  input [7:0] reg_addr;
-  input [15:0] reg_data;
+task write_SJA1000_FD_tx_buffer;
+  input [3:0] tx_addr;
+  input [7:0] tx_data;
 
   begin
-    $display("(%0t) Writing SJA1000 Modified register [%0d] with 0x%0x", $time, reg_addr, reg_data);
+    $display("(%0t) Writing SJA1000 Modified Tx Buffer [%0d] with 0x%0x", $time, tx_addr, tx_data);
     @ (posedge clk);
-    t_sja1000_fd_signals.reg_addr_write = reg_addr;
-    t_sja1000_fd_signals.reg_data_in_16 = reg_data;
-    t_sja1000_fd_signals.reg_we = 1'b1;
+    t_sja1000_fd_signals.tx_we_i = 1'b1;
+    t_sja1000_fd_signals.tx_addr_i = tx_addr;
+    t_sja1000_fd_signals.tx_data_i = tx_data;
     @ (posedge clk);
     @ (negedge clk);
-    t_sja1000_fd_signals.reg_we = 1'b0;
-    t_sja1000_fd_signals.reg_addr_write = 'hx;
-    t_sja1000_fd_signals.reg_data_in_16 = 'hx;
+    t_sja1000_fd_signals.tx_we_i = 1'b0;
+    t_sja1000_fd_signals.tx_addr_i = 'hx;
+    t_sja1000_fd_signals.tx_data_i = 'hx;
   end
 endtask
 

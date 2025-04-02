@@ -212,24 +212,31 @@
 `include "can_defines.sv"
 
 module can_top_raw
-(
+( 
+  // Register Configuration Ports
   // all reg_* ports are in clk_i clock domain
-  input  wire       reg_rst_i,
-  input  wire       reg_re_i,
-  input  wire       reg_we_i,
-  input  wire [7:0] reg_addr_read_i,
-  input  wire [7:0] reg_addr_write_i,
-  input  wire [7:0] reg_data_in,
-  output reg  [7:0] reg_data_out,
-  input  wire [15:0] reg_data_in_16,
-  output reg  [15:0] reg_data_out_16,
+  input  wire        reg_rst_i,
+  input  wire        reg_re_i,
+  input  wire        reg_we_i,
+  input  wire [7:0]  reg_addr_read_i,
+  input  wire [7:0]  reg_addr_write_i,
+  input  wire [7:0]  reg_data_in,
+  output reg  [7:0]  reg_data_out,
+
+  // Transmission Buffer Ports
+  input               tx_we_i,
+  input         [3:0] tx_addr_i,
+  input         [7:0] tx_data_i,
+
+  // RX Fifo Read Ports
+  input         [7:0] rx_fifo_addr_i,
+  output wire   [7:0] rx_fifo_data_o,
 
   input  wire         clk_i,
   input  wire         rx_i,
   output wire         tx_o,
   output wire         bus_off_on,
-  output wire         irq_on,
-  output wire         clkout_o
+  output wire         irq_on
 
   // Bist
 `ifdef CAN_BIST
@@ -256,12 +263,7 @@ wire go_rx_inter_btl;
 wire en_FD_rx;
 wire en_FD_iso;
 
-reg          data_out_fifo_selected;
-
-
-wire   [7:0] data_out_fifo;
 wire   [7:0] data_out_regs;
-wire   [15:0] data_out_regs_16;
 
 
 /* Mode register */
@@ -375,6 +377,7 @@ wire   [7:0] tx_err_cnt;
 wire         rx_err_cnt_dummy;  // The MSB is not displayed. It is just used for easier calculation (no counter overflow).
 wire         tx_err_cnt_dummy;  // The MSB is not displayed. It is just used for easier calculation (no counter overflow).
 wire         transmit_status;
+wire         transmit_buffer_status;
 wire         receive_status;
 wire         tx_successful;
 wire         need_to_tx;
@@ -421,9 +424,7 @@ can_registers i_can_registers
   .addr_read(addr_read),
   .addr_write(addr_write),
   .data_in(reg_data_in),
-  .data_in_16(reg_data_in_16),
   .data_out(data_out_regs),
-  .data_out_16(data_out_regs_16),
   .irq_n(irq_on),
 
   .sample_point(sample_point),
@@ -434,6 +435,7 @@ can_registers i_can_registers
   .rx_err_cnt(rx_err_cnt),
   .tx_err_cnt(tx_err_cnt),
   .transmit_status(transmit_status),
+  .transmit_buffer_status(transmit_buffer_status),
   .receive_status(receive_status),
   .tx_successful(tx_successful),
   .need_to_tx(need_to_tx),
@@ -500,7 +502,6 @@ can_registers i_can_registers
 
   /* Clock Divider register */
   .extended_mode(extended_mode),
-  .clkout(clkout_o),
 
   /* This section is for BASIC and EXTENDED mode */
   /* Acceptance code register */
@@ -519,8 +520,32 @@ can_registers i_can_registers
   /* Acceptance mask register */
   .acceptance_mask_1(acceptance_mask_1),
   .acceptance_mask_2(acceptance_mask_2),
-  .acceptance_mask_3(acceptance_mask_3),
+  .acceptance_mask_3(acceptance_mask_3)
   /* End: This section is for EXTENDED mode */
+);
+
+
+assign rx_inter_btl = (~en_FD_rx) ? (rx_inter | fdf_r ): rx_inter;
+assign go_rx_inter_btl = (~en_FD_rx)  ? (go_rx_inter | go_rx_skip_fdf) : go_rx_inter;
+
+/* Connecting can_tx_buffer module */
+can_tx_buffer i_can_tx_buffer
+( 
+  .clk(clk_i),
+  .rst(rst),
+
+  .we(tx_we_i),
+  .addr(tx_addr_i),
+  .data_in(tx_data_i),
+
+  /* Operation Mode Register*/
+  .extended_mode(extended_mode),
+
+
+  /* Mode register */
+  .reset_mode(reset_mode),
+
+  .transmit_buffer_status(transmit_buffer_status),
 
   /* Tx data registers. Holding identifier (basic mode), tx frame information (extended mode) and data */
   .tx_data_0(tx_data_0),
@@ -611,10 +636,9 @@ can_bsp i_can_bsp
   .tx_point(tx_point),
   .hard_sync(hard_sync),
 
-  .addr(addr_read),
+  .addr(rx_fifo_addr_i),
   .data_in(reg_data_in),
-  .data_out(data_out_fifo),
-  .fifo_selected(data_out_fifo_selected),
+  .data_out(rx_fifo_data_o),
 
   .rx_sync_i(rx_sync),
   .go_rx_skip_fdf_o(go_rx_skip_fdf),
@@ -747,28 +771,11 @@ can_bsp i_can_bsp
 );
 
 
-
-// Multiplexing wb_dat_o from registers and rx fifo
-always @ (extended_mode or addr_read or reset_mode)
-begin
-  if (extended_mode & (~reset_mode) & ((addr_read >= 8'd16) && (addr_read <= 8'd28)) | (~extended_mode) & ((addr_read >= 8'd20) && (addr_read <= 8'd29)))
-    data_out_fifo_selected = 1'b1;
-  else
-    data_out_fifo_selected = 1'b0;
-end
-
-
 always @ (posedge clk_i)
 begin
   if (cs & re)
     begin
-      if (data_out_fifo_selected) begin
-        reg_data_out <= data_out_fifo;
-        reg_data_out_16 <= 16'b0;
-      end else begin
-        reg_data_out <= data_out_regs;
-        reg_data_out_16 <= data_out_regs_16;
-      end
+      reg_data_out <= data_out_regs;
     end
 end
 

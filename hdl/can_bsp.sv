@@ -326,7 +326,6 @@ module can_bsp
   input  wire  [7:0] addr, // FIFO read address only
   input  wire  [7:0] data_in, // input data for FIFO and error count settings (looks magical :/)
   output wire  [7:0] data_out, // from FIFO only
-  input  wire        fifo_selected, // only forwarded
 
   input  wire        rx_sync_i, // raw RX for busy detection on fast data rate
   output wire        go_rx_skip_fdf_o,
@@ -502,7 +501,7 @@ reg    [16:0] crc_in_17;
 reg    [20:0] crc_in_21;
 
 reg     [7:0] tmp_data;
-reg     [7:0] tmp_fifo [0:63];
+reg     [7:0] tmp_fifo [0:255];
 reg           write_data_to_tmp_fifo;
 reg     [6:0] byte_cnt;
 reg           bit_stuff_cnt_en;
@@ -1745,23 +1744,15 @@ can_fifo i_can_fifo
   .wr(wr_fifo),
 
   .data_in(data_for_fifo),
-  .addr(addr[5:0]),
+  .addr(addr),
   .data_out(data_out),
-  .fifo_selected(fifo_selected),
-
+  .fifo_selected(1'b0),
   .reset_mode(reset_mode),
   .release_buffer(release_buffer),
   .extended_mode(extended_mode),
   .overrun(overrun),
   .info_empty(info_empty),
   .info_cnt(rx_message_counter)
-
-`ifdef CAN_BIST
-  ,
-  .mbist_si_i(mbist_si_i),
-  .mbist_so_o(mbist_so_o),
-  .mbist_ctrl_i(mbist_ctrl_i)
-`endif
 );
 
 
@@ -1770,7 +1761,6 @@ always @ (posedge clk or posedge rst)
 begin
   if (rst)
     error_frame <= 1'b0;
-//  else if (reset_mode || error_frame_ended || go_overload_frame)
   else if ( FD_tolerant & (set_reset_mode || error_frame_ended || go_overload_frame || go_rx_skip_fdf) )
     error_frame <= 1'b0;
   else if (set_reset_mode || error_frame_ended || go_overload_frame)
