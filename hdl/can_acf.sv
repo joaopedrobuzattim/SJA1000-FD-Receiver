@@ -129,8 +129,6 @@ module can_acf
 
 );
 
-parameter Tp = 1;
-
 input         clk;
 input         rst;
 input  [28:0] id;
@@ -352,23 +350,23 @@ begin
           if (~acceptance_filter_mode)      // dual filter
             begin
               if (ide)                      // extended frame message
-                id_ok <=#Tp match_df_ext;
+                id_ok <= match_df_ext;
               else                          // standard frame message
-                id_ok <=#Tp match_df_std;
+                id_ok <= match_df_std;
             end
           else                              // single filter
             begin
               if (ide)                      // extended frame message
-                id_ok <=#Tp match_sf_ext;
+                id_ok <= match_sf_ext;
               else                          // standard frame message
-                id_ok <=#Tp match_sf_std;
+                id_ok <= match_sf_std;
             end
         end
       else
-        id_ok <=#Tp match;
+        id_ok <= match;
     end
   else if (reset_mode | go_rx_inter | go_error_frame)        // sample_point is already included in go_rx_inter
-    id_ok <=#Tp 1'b0;
+    id_ok <= 1'b0;
 end
 
 

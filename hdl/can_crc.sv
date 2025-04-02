@@ -75,7 +75,6 @@
 module can_crc (clk, data, stuff_bit, enable, initialize, FD_iso, crc_15, crc_17, crc_21);
 
 
-parameter Tp = 1;
 parameter CRC15_POL = 15'hC599;
 parameter CRC17_POL = 17'h3685B;
 parameter CRC21_POL = 21'h302899;
@@ -120,35 +119,35 @@ assign crc_21 = crc_21_r;
 always @ (posedge clk)
 begin
   if(initialize & ~FD_iso) begin
-    crc_15_r <= #Tp 15'h0;
-    crc_17_r <= #Tp 17'h0;
-    crc_21_r <= #Tp 21'h0;
+    crc_15_r <=  15'h0;
+    crc_17_r <=  17'h0;
+    crc_21_r <=  21'h0;
   end
   else if (initialize & FD_iso) begin
-    crc_15_r <= #Tp 15'h0;
-    crc_17_r <= #Tp 17'h10000;
-    crc_21_r <= #Tp 21'h100000;
+    crc_15_r <=  15'h0;
+    crc_17_r <=  17'h10000;
+    crc_21_r <=  21'h100000;
   end
   else if (enable)
     begin
 
       // Bit stuffs não são utilizados no calculo do CRC de frames CAN Classico
       if (crc_15_next & ~stuff_bit) begin
-        crc_15_r <= #Tp crc_15_tmp ^ CRC15_POL;
+        crc_15_r <=  crc_15_tmp ^ CRC15_POL;
       end else if (~crc_15_next & ~stuff_bit) begin
-        crc_15_r <= #Tp crc_15_tmp;
+        crc_15_r <=  crc_15_tmp;
       end
 
       if (crc_17_next) begin
-        crc_17_r <= #Tp crc_17_tmp ^ CRC17_POL;
+        crc_17_r <=  crc_17_tmp ^ CRC17_POL;
       end else begin
-        crc_17_r <= #Tp crc_17_tmp;
+        crc_17_r <=  crc_17_tmp;
       end 
 
       if (crc_21_next) begin
-        crc_21_r <= #Tp crc_21_tmp ^ CRC21_POL;
+        crc_21_r <=  crc_21_tmp ^ CRC21_POL;
       end else begin
-        crc_21_r <= #Tp crc_21_tmp;
+        crc_21_r <=  crc_21_tmp;
       end
 
     end

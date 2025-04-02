@@ -75,7 +75,6 @@ module can_ifc_wb
   output reg        wb_ack_o
 );
 
-parameter Tp = 1;
 
   reg          cs_sync1;
   reg          cs_sync2;
@@ -105,11 +104,11 @@ parameter Tp = 1;
       end
     else
       begin
-        cs_sync1     <=#Tp wb_cyc_i & wb_stb_i & (~cs_sync_rst2) & cs_can_i;
-        cs_sync2     <=#Tp cs_sync1            & (~cs_sync_rst2);
-        cs_sync3     <=#Tp cs_sync2            & (~cs_sync_rst2);
-        cs_sync_rst1 <=#Tp cs_ack3;
-        cs_sync_rst2 <=#Tp cs_sync_rst1;
+        cs_sync1     <= wb_cyc_i & wb_stb_i & (~cs_sync_rst2) & cs_can_i;
+        cs_sync2     <= cs_sync1            & (~cs_sync_rst2);
+        cs_sync3     <= cs_sync2            & (~cs_sync_rst2);
+        cs_sync_rst1 <= cs_ack3;
+        cs_sync_rst2 <= cs_sync_rst1;
       end
   end
 
@@ -119,9 +118,9 @@ parameter Tp = 1;
 
   always @ (posedge wb_clk_i)
   begin
-    cs_ack1 <=#Tp cs_sync3;
-    cs_ack2 <=#Tp cs_ack1;
-    cs_ack3 <=#Tp cs_ack2;
+    cs_ack1 <= cs_sync3;
+    cs_ack2 <= cs_ack1;
+    cs_ack3 <= cs_ack2;
   end
 
 
@@ -129,7 +128,7 @@ parameter Tp = 1;
   // Generating acknowledge signal
   always @ (posedge wb_clk_i)
   begin
-    wb_ack_o <=#Tp (cs_ack2 & (~cs_ack3));
+    wb_ack_o <= (cs_ack2 & (~cs_ack3));
   end
 
 

@@ -2,7 +2,6 @@
 
 module can_crc_destuff(clk, rst, data, data_prev, enable, bit_cnt, fixed_stuff_bit_error, crc_17_o, crc_21_o);
 
-parameter Tp = 1;
 
 input clk, rst;
 input enable;
@@ -26,13 +25,13 @@ assign fixed_stuff_bit_error = enable & stuff_bit_crc &  (data == data_prev);
 always @ (posedge clk or posedge rst)
 begin
   if (rst) begin
-    crc_17_r <= #Tp 17'h0;
-    crc_21_r <= #Tp 21'h0;
+    crc_17_r <=  17'h0;
+    crc_21_r <=  21'h0;
   end
   else if(enable) begin
     if ( ~ stuff_bit_crc ) begin
-        crc_17_r <=#Tp {crc_17_r[15:0], data};
-        crc_21_r <=#Tp {crc_21_r[19:0], data};
+        crc_17_r <= {crc_17_r[15:0], data};
+        crc_21_r <= {crc_21_r[19:0], data};
     end
   end
 end
