@@ -26,7 +26,6 @@ struct {
   logic tx_o;
   logic bus_off_on;
   logic [1:0] irqns;
-  logic clkout;
 } t_sja1000_fd_signals;
 
 // Sinais para conectar as portas de CTU CAN FD
@@ -96,8 +95,7 @@ can_top_raw i_can_top
   .rx_i(t_sja1000_fd_signals.tx_o & t_ctu_can_fd_signals.can_tx),
   .tx_o(t_sja1000_fd_signals.tx_o),
   .bus_off_on(t_sja1000_fd_signals.bus_off_on),
-  .irq_on(t_sja1000_fd_signals.irqns[0]),
-  .clkout_o(t_sja1000_fd_signals.clkout)
+  .irq_on(t_sja1000_fd_signals.irqns[0])
 );
 
 // Instanciando CTU CAN FD
@@ -225,7 +223,7 @@ begin
   // Escrevendo no registrador de TX COMMAND de CTU CAN FD
   write_CTU_CAN_FD_register(4'b0011, CTU_CAN_FD_BASE + TX_COMMAND_OFFSET, 32'b00000000000000000000000100000010);
 
- #60000;
+ #120000;
 
   write_CTU_CAN_FD_register(4'b1100, CTU_CAN_FD_BASE + MODE_OFFSET, 32'b00000000000000000000000000000000);
 

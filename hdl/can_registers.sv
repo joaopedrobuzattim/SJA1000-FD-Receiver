@@ -260,7 +260,6 @@ module can_registers
 
   /* Clock Divider register */
   extended_mode,
-  clkout,
 
 
   /* This section is for BASIC and EXTENDED mode */
@@ -397,8 +396,6 @@ output        we_tx_err_cnt;
 
 /* Clock Divider register */
 output        extended_mode;
-output        clkout;
-
 
 /* This section is for BASIC and EXTENDED mode */
 /* Acceptance code register */
@@ -831,11 +828,6 @@ can_register_asyn #(8, 96) ERROR_WARNING_REG
 
 /* Clock Divider register */
 wire   [7:0] clock_divider;
-wire         clock_off;
-wire   [2:0] cd;
-reg    [2:0] clkout_div;
-reg    [2:0] clkout_cnt;
-reg          clkout_tmp;
 
 can_register_asyn #(1, 0) CLOCK_DIVIDER_REG_7
 ( .data_in(data_in[7]),
@@ -864,56 +856,6 @@ can_register_asyn #(3, 0) CLOCK_DIVIDER_REG_LOW
 );
 
 assign extended_mode = clock_divider[7];
-assign clock_off     = clock_divider[3];
-assign cd[2:0]       = clock_divider[2:0];
-
-
-
-always @ (cd)
-begin
-  case (cd)                       /* synthesis full_case parallel_case */
-    3'b000 : clkout_div = 3'd0;
-    3'b001 : clkout_div = 3'd1;
-    3'b010 : clkout_div = 3'd2;
-    3'b011 : clkout_div = 3'd3;
-    3'b100 : clkout_div = 3'd4;
-    3'b101 : clkout_div = 3'd5;
-    3'b110 : clkout_div = 3'd6;
-    3'b111 : clkout_div = 3'd0;
-  endcase
-end
-
-
-
-always @ (posedge clk or posedge rst)
-begin
-  if (rst)
-    clkout_cnt <= 3'h0;
-  else if (clkout_cnt == clkout_div)
-    clkout_cnt <= 3'h0;
-  else
-    clkout_cnt <= clkout_cnt + 1'b1;
-end
-
-
-
-always @ (posedge clk or posedge rst)
-begin
-  if (rst)
-    clkout_tmp <= 1'b0;
-  else if (clkout_cnt == clkout_div)
-    clkout_tmp <= ~clkout_tmp;
-end
-
-
-assign clkout = clock_off ? 1'b1 : ((&cd)? clk : clkout_tmp);
-
-
-
-/* End Clock Divider register */
-
-
-
 
 /* This section is for BASIC and EXTENDED mode */
 

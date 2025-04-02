@@ -228,8 +228,7 @@ module can_top_raw
   input  wire         rx_i,
   output wire         tx_o,
   output wire         bus_off_on,
-  output wire         irq_on,
-  output wire         clkout_o
+  output wire         irq_on
 
   // Bist
 `ifdef CAN_BIST
@@ -500,7 +499,6 @@ can_registers i_can_registers
 
   /* Clock Divider register */
   .extended_mode(extended_mode),
-  .clkout(clkout_o),
 
   /* This section is for BASIC and EXTENDED mode */
   /* Acceptance code register */

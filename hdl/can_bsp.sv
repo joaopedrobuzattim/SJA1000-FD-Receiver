@@ -502,7 +502,7 @@ reg    [16:0] crc_in_17;
 reg    [20:0] crc_in_21;
 
 reg     [7:0] tmp_data;
-reg     [7:0] tmp_fifo [0:63];
+reg     [7:0] tmp_fifo [0:255];
 reg           write_data_to_tmp_fifo;
 reg     [6:0] byte_cnt;
 reg           bit_stuff_cnt_en;
@@ -1755,13 +1755,6 @@ can_fifo i_can_fifo
   .overrun(overrun),
   .info_empty(info_empty),
   .info_cnt(rx_message_counter)
-
-`ifdef CAN_BIST
-  ,
-  .mbist_si_i(mbist_si_i),
-  .mbist_so_o(mbist_so_o),
-  .mbist_ctrl_i(mbist_ctrl_i)
-`endif
 );
 
 
