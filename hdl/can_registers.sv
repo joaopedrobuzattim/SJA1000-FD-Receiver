@@ -427,12 +427,12 @@ assign cs = 1'b1;
 wire we_mode                  = cs & we & (addr_write == 8'd0);
 wire we_command               = cs & we & (addr_write == 8'd1);
 wire we_bus_timing_0          = cs & we & (addr_write == 8'd6) & reset_mode;
-wire we_bus_timing_0_FD       = extended_mode ? (cs & we & (addr_write == 8'd25) & reset_mode): (cs & we & (addr_write == 8'd11) & reset_mode);
+wire we_bus_timing_0_FD       = (extended_mode & cs & we & (addr_write == 8'd25) & reset_mode);
 wire we_bus_timing_1          = cs & we & (addr_write == 8'd7) & reset_mode;
-wire we_bus_timing_1_FD       = extended_mode ? (cs & we & (addr_write == 8'd26) & reset_mode): (cs & we & (addr_write == 8'd12) & reset_mode);
+wire we_bus_timing_1_FD       = (extended_mode & cs & we & (addr_write == 8'd26) & reset_mode);
 
 /* FD Data Bit Rate Register  */
-wire we_fd_control_register = extended_mode ? (cs & we & (addr_write == 8'd24) & reset_mode) : (cs & we & (addr_write == 8'd10) & reset_mode);
+wire we_fd_control_register = (extended_mode & cs & we & (addr_write == 8'd24) & reset_mode);
 
 wire we_clock_divider_low     = cs & we & (addr_write == 8'd31);
 wire we_clock_divider_hi      = we_clock_divider_low & reset_mode;
@@ -495,7 +495,7 @@ can_register #(8) FD_CONTROL_REG
   .clk(clk)
 );
 
-assign  en_FD_rx = fd_control_register[0];
+assign en_FD_rx = fd_control_register[0];
 
 assign en_FD_iso = fd_control_register[0] & fd_control_register[1];
 
