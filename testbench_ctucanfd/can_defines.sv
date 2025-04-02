@@ -121,4 +121,4 @@
 /* Uncomment following line to not disrupt other nodes CAN FD communication */
 `define CAN_FD_TOLERANT
 
-`define FSM_RX
+`define FSM_PROTOCOL_CONTROL

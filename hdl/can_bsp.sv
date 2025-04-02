@@ -695,7 +695,7 @@ assign go_rx_rtr2     = (~bit_de_stuff) & sample_point &  rx_id2  & (bit_cnt[4:0
 assign go_rx_r1       = (~bit_de_stuff) & sample_point &  rx_rtr2;
 assign go_rx_r0       = (~bit_de_stuff) & sample_point & (rx_ide  & (~sampled_bit) | rx_r1);
 
-assign go_rx_dlc = FD_tolerant ? ( (~bit_de_stuff) & sample_point &  rx_r0 & (~go_rx_skip_fdf) ) : ( ((~bit_de_stuff) & sample_point &  rx_r0 & (~fdf_detected) ) |  ((~bit_de_stuff) & sample_point &  rx_esi ) );
+assign go_rx_dlc = FD_tolerant ? ( (~bit_de_stuff) & sample_point &  rx_r0 ) : ( ((~bit_de_stuff) & sample_point &  rx_r0  ) |  ((~bit_de_stuff) & sample_point &  rx_esi ) );
 
 assign go_rx_data     = (~bit_de_stuff) & sample_point &  rx_dlc  & (bit_cnt[1:0] == 2'd3) & (~remote_rq);
 
@@ -741,10 +741,10 @@ assign error_frame_ended = (error_cnt2 == 3'd7) & tx_point;
 assign overload_frame_ended = (overload_cnt2 == 3'd7) & tx_point;
 
 assign go_overload_frame = (     sample_point & ((~sampled_bit) | overload_request) & (rx_eof & (~transmitter) & (eof_cnt == 3'd6) | error_frame_ended | overload_frame_ended) |
-                                 sample_point & (~sampled_bit) & rx_inter & (bit_cnt[1:0] < 2'd2)                                                            |
-                                 sample_point & (~sampled_bit) & ((error_cnt2 == 3'd7) | (overload_cnt2 == 3'd7))
+                                 sample_point & (~sampled_bit) & rx_inter & (bit_cnt[1:0] < 2'd2) | sample_point & (~sampled_bit) & ((error_cnt2 == 3'd7) | (overload_cnt2 == 3'd7))
                            )
-                           & (~overload_frame_blocked)
+                           & 
+                           (~overload_frame_blocked)
                            ;
 
 
@@ -2509,203 +2509,36 @@ begin
     error_capture_code_blocked <= 1'b1;
 end
 
-`ifdef FSM_RX
 
-//Criando currentState para facilitar visualizacao do Frame
-typedef enum { BUS_IDLE,
-              ID_1,
-              RTR_1,
-              IDE,
-              ID_2,
-              RTR_2,
-              R1,
-              R0,
-              R0_FD,
-              BRS,
-              ESI,
-              DLC,
-              DATA,
-              STUFF_COUNT,
-              CRC,
-              CRC_LIM,
-              ACK,
-              ACK_LIM,
-              EOF,
-              INTER,
-              TRANSMITING_ERROR,
-              TRANSMITING_OVERLOAD } States;
+`ifdef FSM_PROTOCOL_CONTROL
 
-States currentState;
+can_rx_fsm_control i_can_rx_fsm_control (
+    .clk_i(clk),
+    .rst_i(rst),
 
-always @ (posedge clk or posedge rst)
-begin
-  if (rst) begin
-    currentState <= BUS_IDLE;
-  end else begin
-    case (currentState)
-      BUS_IDLE: begin
-        if(rx_id1)
-          currentState <= ID_1;
-        else if (error_frame)
-          currentState <= TRANSMITING_ERROR;
-        else
-          currentState <= BUS_IDLE;
-      end
-      ID_1: 
-        if (rx_rtr1)
-          currentState <= RTR_1;
-        else if (error_frame)
-          currentState <= TRANSMITING_ERROR;
-        else
-          currentState <= ID_1;
-      RTR_1:
-        if (rx_ide)
-          currentState <= IDE;
-        else if (error_frame)
-          currentState <= TRANSMITING_ERROR;
-        else
-          currentState <= RTR_1;
-      IDE:
-        if (rx_r0)
-          currentState <= R0;
-        else if (rx_id2)
-          currentState <= ID_2;
-        else if (error_frame)
-          currentState <= TRANSMITING_ERROR;  
-        else
-          currentState <= IDE;
-      ID_2:
-        if (rx_rtr2)
-          currentState <= RTR_2;
-        else if (error_frame)
-          currentState <= TRANSMITING_ERROR;
-        else
-          currentState <= ID_2;   
-      RTR_2:
-        if (rx_r1)
-          currentState <= R1;
-        else if (error_frame)
-          currentState <= TRANSMITING_ERROR;
-        else
-          currentState <= RTR_2;
-      R1:
-        if (rx_r0)
-          currentState <= R0;
-        else if (error_frame)
-          currentState <= TRANSMITING_ERROR;
-        else
-          currentState <= R1;      
-      R0:
-        if (rx_dlc)
-          currentState <= DLC;
-        else if (error_frame)
-          currentState <= TRANSMITING_ERROR;
-        else if (rx_r0_fd)
-          currentState <= R0_FD;
-        else
-          currentState <= R0;
-      R0_FD:
-        if (rx_brs)
-          currentState <= BRS;
-        else if (error_frame)
-          currentState <= TRANSMITING_ERROR;
-        else
-          currentState <= R0_FD;    
-      BRS:
-        if (rx_esi)
-          currentState <= ESI;
-        else if (error_frame)
-          currentState <= TRANSMITING_ERROR;
-        else
-          currentState <= BRS;
-      ESI:
-        if (rx_dlc)
-          currentState <= DLC;
-        else if (error_frame)
-          currentState <= TRANSMITING_ERROR;
-        else
-          currentState <= ESI;        
-      DLC:
-        if (rx_data)
-          currentState <= DATA;
-        else if (rx_crc)
-          currentState <= CRC;
-        else if (rx_stuff_count)
-          currentState <= STUFF_COUNT;
-        else if (error_frame)
-          currentState <= TRANSMITING_ERROR;
-        else
-          currentState <= DLC;
-      DATA:
-        if (rx_crc)
-          currentState <= CRC;
-        else if (error_frame)
-          currentState <= TRANSMITING_ERROR;
-        else if (rx_stuff_count)
-          currentState <= STUFF_COUNT;
-        else
-          currentState <= DATA;
-      STUFF_COUNT:
-        if (rx_crc)
-          currentState <= CRC;
-        else if (error_frame)
-          currentState <= TRANSMITING_ERROR;
-        else
-          currentState <= STUFF_COUNT;
-      CRC:
-        if (rx_crc_lim)
-          currentState <= CRC_LIM;
-        else if (error_frame)
-          currentState <= TRANSMITING_ERROR;
-        else
-          currentState <= CRC;
-      CRC_LIM:
-        if (rx_ack)
-          currentState <= ACK;
-        else if (error_frame)
-          currentState <= TRANSMITING_ERROR;
-        else
-          currentState <= CRC_LIM;
-      ACK:
-        if (rx_ack_lim)
-          currentState <= ACK_LIM;
-        else if (error_frame)
-          currentState <= TRANSMITING_ERROR;
-        else
-          currentState <= ACK;
-      ACK_LIM:
-        if (rx_eof)
-          currentState <= EOF;
-        else if (error_frame)
-          currentState <= TRANSMITING_ERROR;
-        else if (overload_frame)
-          currentState <= TRANSMITING_OVERLOAD;
-        else
-          currentState <= ACK_LIM;
-      EOF:
-        if (rx_inter)
-          currentState <= INTER;
-        else if (error_frame)
-          currentState <= TRANSMITING_ERROR;
-        else if (overload_frame)
-          currentState <= TRANSMITING_OVERLOAD;
-        else
-          currentState <= EOF;
-      INTER:
-        if (rx_idle)
-          currentState <= BUS_IDLE;
-        else if (rx_id1)
-          currentState <= ID_1;
-        else if (error_frame)
-          currentState <= TRANSMITING_ERROR;
-        else if (overload_frame)
-          currentState <= TRANSMITING_OVERLOAD;
-        else
-          currentState <= INTER;                               
-      default: currentState <= BUS_IDLE;
-    endcase
-  end
-end
+    .sample_point_i(sample_point),
+    .sampled_bit_i(sampled_bit),
+    .bit_de_stuff_i(bit_de_stuff),
+    .fd_tolerant_i(FD_tolerant),
+    .ide_i(ide),
+    .fdf_skip_finished_i(fd_skip_finished),
+    .remote_rq_i(remote_rq),
+    .en_FD_iso_i(en_FD_iso),
+    .edl_i(edl),
+    .node_bus_off_i(node_bus_off),
+    .transmitter_i(transmitter),
+    .error_frame_ended_i(error_frame_ended),
+    .overload_frame_ended_i(overload_frame),
+    .err_condition_i(go_error_frame),
+    .overload_condition_i(go_overload_frame),
+    .overload_request_i(overload_request),
+    .reset_mode_i(reset_mode),
+    .reset_mode_q_i(reset_mode_q),
+    .bus_free_i(bus_free),
+    .eof_cnt_i(eof_cnt),
+    .bit_cnt_i(bit_cnt),
+    .data_len_i(data_len)
+);
 
 `endif
 
