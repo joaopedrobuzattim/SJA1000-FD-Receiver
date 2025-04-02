@@ -326,7 +326,6 @@ module can_bsp
   input  wire  [7:0] addr, // FIFO read address only
   input  wire  [7:0] data_in, // input data for FIFO and error count settings (looks magical :/)
   output wire  [7:0] data_out, // from FIFO only
-  input  wire        fifo_selected, // only forwarded
 
   input  wire        rx_sync_i, // raw RX for busy detection on fast data rate
   output wire        go_rx_skip_fdf_o,
@@ -1745,10 +1744,9 @@ can_fifo i_can_fifo
   .wr(wr_fifo),
 
   .data_in(data_for_fifo),
-  .addr(addr[5:0]),
+  .addr(addr),
   .data_out(data_out),
-  .fifo_selected(fifo_selected),
-
+  .fifo_selected(1'b0),
   .reset_mode(reset_mode),
   .release_buffer(release_buffer),
   .extended_mode(extended_mode),
@@ -1763,7 +1761,6 @@ always @ (posedge clk or posedge rst)
 begin
   if (rst)
     error_frame <= 1'b0;
-//  else if (reset_mode || error_frame_ended || go_overload_frame)
   else if ( FD_tolerant & (set_reset_mode || error_frame_ended || go_overload_frame || go_rx_skip_fdf) )
     error_frame <= 1'b0;
   else if (set_reset_mode || error_frame_ended || go_overload_frame)
