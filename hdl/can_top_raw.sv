@@ -222,8 +222,6 @@ module can_top_raw
   input  wire [7:0]  reg_addr_write_i,
   input  wire [7:0]  reg_data_in,
   output reg  [7:0]  reg_data_out,
-  input  wire [15:0] reg_data_in_16,
-  output reg  [15:0] reg_data_out_16,
 
   // Transmission Buffer Ports
   input               tx_we_i,
@@ -266,7 +264,6 @@ wire en_FD_rx;
 wire en_FD_iso;
 
 wire   [7:0] data_out_regs;
-wire   [15:0] data_out_regs_16;
 
 
 /* Mode register */
@@ -427,9 +424,7 @@ can_registers i_can_registers
   .addr_read(addr_read),
   .addr_write(addr_write),
   .data_in(reg_data_in),
-  .data_in_16(reg_data_in_16),
   .data_out(data_out_regs),
-  .data_out_16(data_out_regs_16),
   .irq_n(irq_on),
 
   .sample_point(sample_point),
@@ -781,7 +776,6 @@ begin
   if (cs & re)
     begin
       reg_data_out <= data_out_regs;
-      reg_data_out_16 <= data_out_regs_16;
     end
 end
 

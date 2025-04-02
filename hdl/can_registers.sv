@@ -179,9 +179,7 @@ module can_registers
   addr_read,
   addr_write,
   data_in,
-  data_in_16,
   data_out,
-  data_out_16,
   irq_n,
 
   sample_point,
@@ -291,12 +289,10 @@ input         we;
 input   [7:0] addr_read;
 input   [7:0] addr_write;
 input   [7:0] data_in;
-input   [15:0] data_in_16;
 
 output  [7:0] data_out;
-output  [15:0] data_out_16;
+
 reg     [7:0] data_out;
-reg     [15:0] data_out_16;
 
 output        irq_n;
 
@@ -431,10 +427,12 @@ assign cs = 1'b1;
 wire we_mode                  = cs & we & (addr_write == 8'd0);
 wire we_command               = cs & we & (addr_write == 8'd1);
 wire we_bus_timing_0          = cs & we & (addr_write == 8'd6) & reset_mode;
+wire we_bus_timing_0_FD       = extended_mode ? (cs & we & (addr_write == 8'd25) & reset_mode): (cs & we & (addr_write == 8'd11) & reset_mode);
 wire we_bus_timing_1          = cs & we & (addr_write == 8'd7) & reset_mode;
+wire we_bus_timing_1_FD       = extended_mode ? (cs & we & (addr_write == 8'd26) & reset_mode): (cs & we & (addr_write == 8'd12) & reset_mode);
 
 /* FD Data Bit Rate Register  */
-wire we_fd_control_register = cs & we & (addr_write == 8'd9) & reset_mode;
+wire we_fd_control_register = extended_mode ? (cs & we & (addr_write == 8'd24) & reset_mode) : (cs & we & (addr_write == 8'd10) & reset_mode);
 
 wire we_clock_divider_low     = cs & we & (addr_write == 8'd31);
 wire we_clock_divider_hi      = we_clock_divider_low & reset_mode;
@@ -732,10 +730,10 @@ assign receive_irq_en_ext           = irq_en_ext[0];
 /* End Bus Timing 0 register */
 
 
-/* Bus Timing 0 register (16-bit reg) */
-wire   [15:0] bus_timing_0;
-can_register #(16) BUS_TIMING_0_REG
-( .data_in(data_in_16),
+/* Bus Timing 0 register */
+wire   [7:0] bus_timing_0;
+can_register #(8) BUS_TIMING_0_REG
+( .data_in(data_in),
   .data_out(bus_timing_0),
   .we(we_bus_timing_0),
   .clk(clk)
@@ -743,15 +741,13 @@ can_register #(16) BUS_TIMING_0_REG
 
 assign baud_r_presc = bus_timing_0[5:0];
 assign sync_jump_width = bus_timing_0[7:6];
-assign baud_r_presc_fd = bus_timing_0[13:8];
-assign sync_jump_width_fd = bus_timing_0[15:14];
 /* End Bus Timing 0 register */
 
 
-/* Bus Timing 1 register (16-bit reg) */
-wire   [15:0] bus_timing_1;
-can_register #(16) BUS_TIMING_1_REG
-( .data_in(data_in_16),
+/* Bus Timing 1 register */
+wire   [7:0] bus_timing_1;
+can_register #(8) BUS_TIMING_1_REG
+( .data_in(data_in),
   .data_out(bus_timing_1),
   .we(we_bus_timing_1),
   .clk(clk)
@@ -760,10 +756,36 @@ can_register #(16) BUS_TIMING_1_REG
 assign time_segment1 = bus_timing_1[3:0];
 assign time_segment2 = bus_timing_1[6:4];
 assign triple_sampling = bus_timing_1[7];
-assign time_segment1_fd = bus_timing_1[11:8];
-assign time_segment2_fd = bus_timing_1[14:12];
-assign triple_sampling_fd = bus_timing_1[15];
+
 /* End Bus Timing 1 register */
+
+/* Bus Timing 0 register */
+wire   [7:0] bus_timing_0_FD;
+can_register #(8) BUS_TIMING_0_REG_FD
+( .data_in(data_in),
+  .data_out(bus_timing_0_FD),
+  .we(we_bus_timing_0_FD),
+  .clk(clk)
+);
+
+assign baud_r_presc_fd = bus_timing_0_FD[5:0];
+assign sync_jump_width_fd = bus_timing_0_FD[7:6];
+/* End Bus Timing 0 register */
+
+
+/* Bus Timing 1 - FD register */
+wire   [7:0] bus_timing_1_FD;
+can_register #(8) BUS_TIMING_1_REG_FD
+( .data_in(data_in),
+  .data_out(bus_timing_1_FD),
+  .we(we_bus_timing_1_FD),
+  .clk(clk)
+);
+
+assign time_segment1_fd = bus_timing_1_FD[3:0];
+assign time_segment2_fd = bus_timing_1_FD[6:4];
+assign triple_sampling_fd = bus_timing_1_FD[7];
+/* End Bus Timing 1 - FD register */
 
 
 /* Error Warning Limit register */
@@ -894,19 +916,6 @@ can_register #(8) ACCEPTANCE_MASK_REG3
 
 
 /* End: This section is for EXTENDED mode */
-
-// Reading data from 16-bit registers 
-always @ (*)
-begin
-  case({extended_mode, addr_read[4:0]})                                    // synthesis parallel_case
-    {1'h1, 5'd06} :  data_out_16 = bus_timing_0;                           // extended mode
-    {1'h1, 5'd07} :  data_out_16 = bus_timing_1;                           // extended mode
-    {1'h0, 5'd06} :  data_out_16 = reset_mode? bus_timing_0 : 16'hff;      // basic mode
-    {1'h0, 5'd07} :  data_out_16 = reset_mode? bus_timing_1 : 16'hff;      // basic mode
-    default :  data_out_16 = 16'h0;                                        // the rest is read as 0
-  endcase
-end
-
 
 // Reading data from 8-bit registers 
 always @ (*)
