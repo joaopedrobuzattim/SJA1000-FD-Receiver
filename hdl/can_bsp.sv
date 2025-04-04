@@ -326,6 +326,7 @@ module can_bsp
   input  wire  [7:0] addr, // FIFO read address only
   input  wire  [7:0] data_in, // input data for FIFO and error count settings (looks magical :/)
   output wire  [7:0] data_out, // from FIFO only
+  input  wire        fifo_selected, // only forwarded
 
   input  wire        rx_sync_i, // raw RX for busy detection on fast data rate
   output wire        go_rx_skip_fdf_o,
@@ -1673,15 +1674,14 @@ assign err = form_err | stuff_err | bit_err | ack_err | form_err_latched | stuff
 
 
 // Write enable signal for 64-byte rx fifo
+// For now, FD frames should not be written on RX Fifo, once its depth isn't enought
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
     wr_fifo <= 1'b0;
   else if (reset_wr_fifo)
     wr_fifo <= 1'b0;
-  else if (FD_tolerant & ((go_rx_inter & id_ok & (~error_frame_ended) & ((~tx_state) | self_rx_request) ) & (~fdf_r)) )
-    wr_fifo <= 1'b1;
-  else if (go_rx_inter & id_ok & (~error_frame_ended) & ((~tx_state) | self_rx_request) )
+  else if ( (go_rx_inter & id_ok & (~error_frame_ended) & ((~tx_state) | self_rx_request)) & ~(edl | fdf_r ) )
     wr_fifo <= 1'b1;
 end
 
@@ -1713,22 +1713,18 @@ end
 // Multiplexing data that is stored to 64-byte fifo depends on the mode of operation and frame format
 always_comb
 begin
-  casex ({storing_header, extended_mode, ide, header_cnt, edl}) /* synthesis parallel_case */
-    7'b1_1_1_000_0  : data_for_fifo = {1'b1, rtr2, 1'h0, 1'h0, data_len_code};  // extended mode, extended format header (non FD Frame)
-    7'b1_1_1_000_1  : data_for_fifo = {1'b1, rtr2, 1'h1, 1'h0, data_len_code};  // extended mode, extended format header (FD Frame)
-    7'b1_1_1_001_x  : data_for_fifo = id[28:21];                     // extended mode, extended format header
-    7'b1_1_1_010_x  : data_for_fifo = id[20:13];                     // extended mode, extended format header
-    7'b1_1_1_011_x  : data_for_fifo = id[12:5];                      // extended mode, extended format header
-    7'b1_1_1_100_x  : data_for_fifo = {id[4:0], 3'h0};               // extended mode, extended format header
-    7'b1_1_0_000_0  : data_for_fifo = {1'b0, rtr1, 1'b0, 1'h0, data_len_code};  // extended mode, standard format header (non FD Frame)
-    7'b1_1_0_000_1  : data_for_fifo = {1'b0, rtr1, 1'b1, 1'h0, data_len_code};  // extended mode, standard format header (FD Frame)
-    7'b1_1_0_001_x  : data_for_fifo = id[10:3];                      // extended mode, standard format header
-    7'b1_1_0_010_x  : data_for_fifo = {id[2:0], rtr1, 4'h0};         // extended mode, standard format header
-    7'b1_0_x_000_x  : data_for_fifo = id[10:3];                      // normal mode                    header
-    7'b1_0_x_001_x  : data_for_fifo = {id[2:0], rtr1, 4'h0};           // normal mode                    header
-    7'b1_0_x_001_0  : data_for_fifo = {1'b0, 3'h0, data_len_code};     // normal mode                    header (non FD Frame)
-    7'b1_0_x_001_1  : data_for_fifo = {1'b1, 3'h0, data_len_code};     // normal mode                    header (FD Frame) 
-    default       : data_for_fifo = tmp_fifo[data_cnt - {4'b0, header_len}]; // data
+  casex ({storing_header, extended_mode, ide, header_cnt}) /* synthesis parallel_case */
+    6'b1_1_1_000  : data_for_fifo = {1'b1, rtr2, 2'h0, data_len};  // extended mode, extended format header
+    6'b1_1_1_001  : data_for_fifo = id[28:21];                     // extended mode, extended format header
+    6'b1_1_1_010  : data_for_fifo = id[20:13];                     // extended mode, extended format header
+    6'b1_1_1_011  : data_for_fifo = id[12:5];                      // extended mode, extended format header
+    6'b1_1_1_100  : data_for_fifo = {id[4:0], 3'h0};               // extended mode, extended format header
+    6'b1_1_0_000  : data_for_fifo = {1'b0, rtr1, 2'h0, data_len};  // extended mode, standard format header
+    6'b1_1_0_001  : data_for_fifo = id[10:3];                      // extended mode, standard format header
+    6'b1_1_0_010  : data_for_fifo = {id[2:0], rtr1, 4'h0};         // extended mode, standard format header
+    6'b1_0_x_000  : data_for_fifo = id[10:3];                      // normal mode                    header
+    6'b1_0_x_001  : data_for_fifo = {id[2:0], rtr1, data_len};     // normal mode                    header
+    default       : data_for_fifo = tmp_fifo[data_cnt - {1'b0, header_len}]; // data
   endcase
 end
 
@@ -1744,9 +1740,9 @@ can_fifo i_can_fifo
   .wr(wr_fifo),
 
   .data_in(data_for_fifo),
-  .addr(addr),
+  .addr(addr[5:0]),
   .data_out(data_out),
-  .fifo_selected(1'b0),
+  .fifo_selected(fifo_selected),
   .reset_mode(reset_mode),
   .release_buffer(release_buffer),
   .extended_mode(extended_mode),

@@ -228,10 +228,6 @@ module can_top_raw
   input         [3:0] tx_addr_i,
   input         [7:0] tx_data_i,
 
-  // RX Fifo Read Ports
-  input         [7:0] rx_fifo_addr_i,
-  output wire   [7:0] rx_fifo_data_o,
-
   input  wire         clk_i,
   input  wire         rx_i,
   output wire         tx_o,
@@ -263,6 +259,9 @@ wire go_rx_inter_btl;
 wire en_FD_rx;
 wire en_FD_iso;
 
+reg          data_out_fifo_selected;
+
+wire   [7:0] data_out_fifo;
 wire   [7:0] data_out_regs;
 
 
@@ -636,9 +635,10 @@ can_bsp i_can_bsp
   .tx_point(tx_point),
   .hard_sync(hard_sync),
 
-  .addr(rx_fifo_addr_i),
+  .addr(addr_read),
   .data_in(reg_data_in),
-  .data_out(rx_fifo_data_o),
+  .data_out(data_out_fifo),
+  .fifo_selected(data_out_fifo_selected),
 
   .rx_sync_i(rx_sync),
   .go_rx_skip_fdf_o(go_rx_skip_fdf),
@@ -770,12 +770,24 @@ can_bsp i_can_bsp
 `endif
 );
 
+// Multiplexing wb_dat_o from registers and rx fifo
+always @ (extended_mode or addr_read or reset_mode)
+begin
+  if (extended_mode & (~reset_mode) & ((addr_read >= 8'd16) && (addr_read <= 8'd28)) | (~extended_mode) & ((addr_read >= 8'd20) && (addr_read <= 8'd29)))
+    data_out_fifo_selected = 1'b1;
+  else
+    data_out_fifo_selected = 1'b0;
+end
 
 always @ (posedge clk_i)
 begin
   if (cs & re)
     begin
-      reg_data_out <= data_out_regs;
+      if(data_out_fifo_selected) begin
+        reg_data_out <= data_out_fifo;
+      end else begin
+        reg_data_out <= data_out_regs;
+      end
     end
 end
 
