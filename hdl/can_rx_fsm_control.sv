@@ -233,26 +233,26 @@ end
                 end 
             end
             PC_CRC_LIM: begin
-                if ((~bit_de_stuff_i) & sample_point_i) begin
-                    next_state = PC_ACK;
+                if (err_condition_i) begin
+                    next_state = PC_ERROR;
                 end
-                else if (err_condition_i ) begin
-                     next_state = PC_ERROR;
+                else if ((~bit_de_stuff_i) & sample_point_i ) begin
+                     next_state = PC_ACK;
                 end
             end
             PC_ACK: begin
-                if (sample_point_i) begin
-                    next_state = PC_ACK_LIM;
-                end else if (err_condition_i) begin
+                if (err_condition_i) begin
                     next_state = PC_ERROR;
+                end else if (sample_point_i) begin
+                    next_state = PC_ACK_LIM;
                 end
             end
             PC_ACK_LIM: begin
-                if (sample_point_i) begin
-                    next_state = PC_EOF;
-                end else if (err_condition_i) begin
+                if(err_condition_i) begin 
                     next_state = PC_ERROR;
-                end
+                end else if (sample_point_i) begin
+                    next_state = PC_EOF;
+                end 
             end
             PC_EOF: begin
                 if( (sample_point_i &  (eof_cnt_i == 3'd6)) & (~overload_request_i) ) begin
