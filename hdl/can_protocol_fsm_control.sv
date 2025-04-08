@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-////  can_rx_fsm_control.v                                        ////
+////  can_protocol_fsm_control.v                                  ////
 ////                                                              ////
 ////  Description: Combinational next-state logic for handling    ////
 ////  CAN protocol states                                         ////
@@ -12,7 +12,7 @@
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 
-module can_rx_fsm_control 
+module can_protocol_fsm_control 
 (   
     input           clk_i,
     input           rst_i,

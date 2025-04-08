@@ -203,6 +203,17 @@ module can_registers
   node_error_active,
   rx_message_counter,
 
+  tx_data_0,
+  tx_data_1,
+  tx_data_2,
+  tx_data_3,
+  tx_data_4,
+  tx_data_5,
+  tx_data_6,
+  tx_data_7,
+  tx_data_8,
+  tx_data_9,
+
 
   /* Mode register */
   reset_mode,
@@ -317,6 +328,18 @@ input         node_error_passive;
 input         node_error_active;
 input   [6:0] rx_message_counter;
 
+
+/* TX data */ 
+input   [7:0] tx_data_0;
+input   [7:0] tx_data_1;
+input   [7:0] tx_data_2;
+input   [7:0] tx_data_3;
+input   [7:0] tx_data_4;
+input   [7:0] tx_data_5;
+input   [7:0] tx_data_6;
+input   [7:0] tx_data_7;
+input   [7:0] tx_data_8;
+input   [7:0] tx_data_9;
 
 
 /* Mode register */
@@ -955,17 +978,16 @@ begin
     {1'h0, 5'd04} :  data_out = reset_mode? acceptance_code_0 : 8'hff;  // basic mode
     {1'h0, 5'd05} :  data_out = reset_mode? acceptance_mask_0 : 8'hff;  // basic mode
     {1'h0, 5'd09} :  data_out = reset_mode? {7'b0000, en_FD_rx} : 8'hff;// extended mode ( SJA1000 Test Register )
-    {1'h0, 5'd10} :  data_out = 8'hff;                                  // basic mode
-    {1'h0, 5'd11} :  data_out = 8'hff;                                  // basic mode
-    {1'h0, 5'd12} :  data_out = 8'hff;                                  // basic mode
-    {1'h0, 5'd13} :  data_out = 8'hff;                                  // basic mode
-    {1'h0, 5'd14} :  data_out = 8'hff;                                  // basic mode
-    {1'h0, 5'd15} :  data_out = 8'hff;                                  // basic mode
-    {1'h0, 5'd16} :  data_out = 8'hff;                                  // basic mode
-    {1'h0, 5'd17} :  data_out = 8'hff;                                  // basic mode
-    {1'h0, 5'd18} :  data_out = 8'hff;                                  // basic mode
-    {1'h0, 5'd19} :  data_out = 8'hff;                                  // basic mode
-    {1'h0, 5'd31} :  data_out = clock_divider;                          // basic mode
+    {1'h0, 5'd10} :  data_out = reset_mode? 8'hff : tx_data_0;          // basic mode
+    {1'h0, 5'd11} :  data_out = reset_mode? 8'hff : tx_data_1;          // basic mode
+    {1'h0, 5'd12} :  data_out = reset_mode? 8'hff : tx_data_2;          // basic mode
+    {1'h0, 5'd13} :  data_out = reset_mode? 8'hff : tx_data_3;          // basic mode
+    {1'h0, 5'd14} :  data_out = reset_mode? 8'hff : tx_data_4;          // basic mode
+    {1'h0, 5'd15} :  data_out = reset_mode? 8'hff : tx_data_5;          // basic mode
+    {1'h0, 5'd16} :  data_out = reset_mode? 8'hff : tx_data_6;          // basic mode
+    {1'h0, 5'd17} :  data_out = reset_mode? 8'hff : tx_data_7;          // basic mode
+    {1'h0, 5'd18} :  data_out = reset_mode? 8'hff : tx_data_8;          // basic mode
+    {1'h0, 5'd19} :  data_out = reset_mode? 8'hff : tx_data_9;          // basic mode
     default :  data_out = 8'h0;                                   // the rest is read as 0
   endcase
 end

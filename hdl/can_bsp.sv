@@ -1681,7 +1681,7 @@ begin
     wr_fifo <= 1'b0;
   else if (reset_wr_fifo)
     wr_fifo <= 1'b0;
-  else if ( (go_rx_inter & id_ok & (~error_frame_ended) & ((~tx_state) | self_rx_request)) & ~(edl | fdf_r ) )
+  else if ( (go_rx_inter & id_ok & (~error_frame_ended) & ((~tx_state) | self_rx_request)) & ~(fdf_r) )
     wr_fifo <= 1'b1;
 end
 
@@ -2498,7 +2498,7 @@ end
 
 `ifdef FSM_PROTOCOL_CONTROL
 
-can_rx_fsm_control i_can_rx_fsm_control (
+can_protocol_fsm_control i_can_protocol_fsm_control (
     .clk_i(clk),
     .rst_i(rst),
 
