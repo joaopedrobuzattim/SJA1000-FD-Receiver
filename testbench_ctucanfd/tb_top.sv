@@ -85,7 +85,7 @@ can_top_raw i_can_top_1
   .tx_data_i(t_can_fd_tolerant.tx_data_i),
   .reg_rst_i(~reg_rst),
   .clk_i(clk),
-  .rx_i(t_can_fd_tolerant.tx_o & t_ctu_can_fd.can_tx & t_can_fd_receiver.tx_o),
+  .rx_i(can_bus_short_rx),
   .tx_o(t_can_fd_tolerant.tx_o),
   .bus_off_on(t_can_fd_tolerant.bus_off_on),
   .irq_on(t_can_fd_tolerant.irqn)
@@ -105,7 +105,7 @@ can_top_raw i_can_top_2
   .tx_data_i(t_can_fd_receiver.tx_data_i),
   .reg_rst_i(~reg_rst),
   .clk_i(clk),
-  .rx_i(t_can_fd_tolerant.tx_o & t_ctu_can_fd.can_tx & t_can_fd_receiver.tx_o),
+  .rx_i(can_bus_short_rx),
   .tx_o(t_can_fd_receiver.tx_o),
   .bus_off_on(t_can_fd_receiver.bus_off_on),
   .irq_on(t_can_fd_receiver.irqn)
@@ -127,16 +127,14 @@ can_top_level ctu_can_fd
   .sbe(t_ctu_can_fd.sbe),
   .\int (t_ctu_can_fd.inte),
   .can_tx(t_ctu_can_fd.can_tx),
-  .can_rx(t_can_fd_tolerant.tx_o & t_ctu_can_fd.can_tx & t_can_fd_receiver.tx_o),
+  .can_rx(can_bus_short_rx),
   .test_probe(t_ctu_can_fd.test_probe),
   .timestamp(t_ctu_can_fd.timestamp)
 );
 
 // Shorting RX Chanel
-initial
-begin
-  can_bus_short_rx = t_can_fd_tolerant.tx_o & t_ctu_can_fd.can_tx & t_can_fd_receiver.tx_o;
-end
+assign can_bus_short_rx = t_can_fd_tolerant.tx_o & t_ctu_can_fd.can_tx & t_can_fd_receiver.tx_o;
+
 
 // Clock de 100MHz
 initial
