@@ -2498,7 +2498,7 @@ end
 
 `ifdef FSM_PROTOCOL_CONTROL
 
-can_rx_fsm_control i_can_rx_fsm_control (
+can_protocol_fsm_control i_can_protocol_fsm_control (
     .clk_i(clk),
     .rst_i(rst),
 
