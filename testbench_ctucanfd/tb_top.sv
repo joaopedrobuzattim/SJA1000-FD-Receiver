@@ -151,11 +151,11 @@ begin
 
   #1000;
 
-  //fd_frame_ISO_on_bus();
+  fd_frame_ISO_on_bus();
   //fd_frame_NON_ISO_on_bus();
   //error_caused_by_receiving_ISO_FD_Frame();
   // SJA1000_send_extended_frame();
-  loop_sending_extended_frame();
+  //loop_sending_extended_frame();
 
   #12000;
   $stop;
