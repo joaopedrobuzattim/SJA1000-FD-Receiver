@@ -511,11 +511,12 @@ end
 
 wire  [7:0] fd_control_register;
 
-can_register #(8) FD_CONTROL_REG
+can_register_asyn #(8) FD_CONTROL_REG
 ( .data_in(data_in),
   .data_out(fd_control_register),
   .we(we_fd_control_register),
-  .clk(clk)
+  .clk(clk),
+  .rst(rst)
 );
 
 assign en_FD_rx = fd_control_register[0];
@@ -735,11 +736,12 @@ wire         error_warning_irq_en_ext;
 wire         transmit_irq_en_ext;
 wire         receive_irq_en_ext;
 
-can_register #(8) IRQ_EN_REG
+can_register_asyn #(8) IRQ_EN_REG
 ( .data_in(data_in),
   .data_out(irq_en_ext),
   .we(we_interrupt_enable),
-  .clk(clk)
+  .clk(clk),
+  .rst(rst)
 );
 
 
@@ -755,11 +757,12 @@ assign receive_irq_en_ext           = irq_en_ext[0];
 
 /* Bus Timing 0 register */
 wire   [7:0] bus_timing_0;
-can_register #(8) BUS_TIMING_0_REG
+can_register_asyn #(8) BUS_TIMING_0_REG
 ( .data_in(data_in),
   .data_out(bus_timing_0),
   .we(we_bus_timing_0),
-  .clk(clk)
+  .clk(clk),
+  .rst(rst)
 );
 
 assign baud_r_presc = bus_timing_0[5:0];
@@ -769,11 +772,12 @@ assign sync_jump_width = bus_timing_0[7:6];
 
 /* Bus Timing 1 register */
 wire   [7:0] bus_timing_1;
-can_register #(8) BUS_TIMING_1_REG
+can_register_asyn #(8) BUS_TIMING_1_REG
 ( .data_in(data_in),
   .data_out(bus_timing_1),
   .we(we_bus_timing_1),
-  .clk(clk)
+  .clk(clk),
+  .rst(rst)
 );
 
 assign time_segment1 = bus_timing_1[3:0];
@@ -784,11 +788,12 @@ assign triple_sampling = bus_timing_1[7];
 
 /* Bus Timing 0 register */
 wire   [7:0] bus_timing_0_FD;
-can_register #(8) BUS_TIMING_0_REG_FD
+can_register_asyn #(8) BUS_TIMING_0_REG_FD
 ( .data_in(data_in),
   .data_out(bus_timing_0_FD),
   .we(we_bus_timing_0_FD),
-  .clk(clk)
+  .clk(clk),
+  .rst(rst)
 );
 
 assign baud_r_presc_fd = bus_timing_0_FD[5:0];
@@ -798,11 +803,12 @@ assign sync_jump_width_fd = bus_timing_0_FD[7:6];
 
 /* Bus Timing 1 - FD register */
 wire   [7:0] bus_timing_1_FD;
-can_register #(8) BUS_TIMING_1_REG_FD
+can_register_asyn #(8) BUS_TIMING_1_REG_FD
 ( .data_in(data_in),
   .data_out(bus_timing_1_FD),
   .we(we_bus_timing_1_FD),
-  .clk(clk)
+  .clk(clk),
+  .rst(rst)
 );
 
 assign time_segment1_fd = bus_timing_1_FD[3:0];
@@ -857,21 +863,23 @@ assign extended_mode = clock_divider[7];
 /* This section is for BASIC and EXTENDED mode */
 
 /* Acceptance code register */
-can_register #(8) ACCEPTANCE_CODE_REG0
+can_register_asyn #(8) ACCEPTANCE_CODE_REG0
 ( .data_in(data_in),
   .data_out(acceptance_code_0),
   .we(we_acceptance_code_0),
-  .clk(clk)
+  .clk(clk),
+  .rst(rst)
 );
 /* End: Acceptance code register */
 
 
 /* Acceptance mask register */
-can_register #(8) ACCEPTANCE_MASK_REG0
+can_register_asyn #(8) ACCEPTANCE_MASK_REG0
 ( .data_in(data_in),
   .data_out(acceptance_mask_0),
   .we(we_acceptance_mask_0),
-  .clk(clk)
+  .clk(clk),
+  .rst(rst)
 );
 /* End: Acceptance mask register */
 /* End: This section is for BASIC and EXTENDED mode */
@@ -879,61 +887,67 @@ can_register #(8) ACCEPTANCE_MASK_REG0
 /* This section is for EXTENDED mode */
 
 /* Acceptance code register 1 */
-can_register #(8) ACCEPTANCE_CODE_REG1
+can_register_asyn #(8) ACCEPTANCE_CODE_REG1
 ( .data_in(data_in),
   .data_out(acceptance_code_1),
   .we(we_acceptance_code_1),
-  .clk(clk)
+  .clk(clk),
+  .rst(rst)
 );
 /* End: Acceptance code register */
 
 
 /* Acceptance code register 2 */
-can_register #(8) ACCEPTANCE_CODE_REG2
+can_register_asyn #(8) ACCEPTANCE_CODE_REG2
 ( .data_in(data_in),
   .data_out(acceptance_code_2),
   .we(we_acceptance_code_2),
-  .clk(clk)
+  .clk(clk),
+  .rst(rst)
 );
 /* End: Acceptance code register */
 
 
 /* Acceptance code register 3 */
-can_register #(8) ACCEPTANCE_CODE_REG3
+can_register_asyn #(8) ACCEPTANCE_CODE_REG3
 ( .data_in(data_in),
   .data_out(acceptance_code_3),
   .we(we_acceptance_code_3),
-  .clk(clk)
+  .clk(clk),
+  .rst(rst)
 );
 /* End: Acceptance code register */
 
 
 /* Acceptance mask register 1 */
-can_register #(8) ACCEPTANCE_MASK_REG1
+can_register_asyn #(8) ACCEPTANCE_MASK_REG1
 ( .data_in(data_in),
   .data_out(acceptance_mask_1),
   .we(we_acceptance_mask_1),
-  .clk(clk)
+  .clk(clk),
+  .rst(rst)
 );
 /* End: Acceptance code register */
 
 
 /* Acceptance mask register 2 */
-can_register #(8) ACCEPTANCE_MASK_REG2
+can_register_asyn #(8) ACCEPTANCE_MASK_REG2
 ( .data_in(data_in),
   .data_out(acceptance_mask_2),
   .we(we_acceptance_mask_2),
-  .clk(clk)
+  .clk(clk),
+  .rst(rst)
 );
 /* End: Acceptance code register */
 
 
 /* Acceptance mask register 3 */
-can_register #(8) ACCEPTANCE_MASK_REG3
+can_register_asyn #(8) ACCEPTANCE_MASK_REG3
 ( .data_in(data_in),
   .data_out(acceptance_mask_3),
   .we(we_acceptance_mask_3),
-  .clk(clk)
+  .clk(clk),
+  .rst(rst)
 );
 /* End: Acceptance code register */
 
