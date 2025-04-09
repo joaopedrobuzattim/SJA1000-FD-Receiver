@@ -447,14 +447,6 @@ module can_bsp
   output wire        go_error_frame,
   output wire        go_tx,
   output wire        send_ack
-
-  /* Bist */
-`ifdef CAN_BIST
-  ,
-  input  wire        mbist_si_i,
-  output wire        mbist_so_o,
-  input  wire  [`CAN_MBIST_CTRL_WIDTH - 1:0] mbist_ctrl_i       // bist chain shift control
-`endif
 );
 
 parameter Tp = 1;

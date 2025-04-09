@@ -233,15 +233,6 @@ module can_top_raw
   output wire         tx_o,
   output wire         bus_off_on,
   output wire         irq_on
-
-  // Bist
-`ifdef CAN_BIST
-  ,
-  // debug chain signals
-  input  wire mbist_si_i,       // bist scan serial in
-  output wire mbist_so_o,       // bist scan serial out
-  input [`CAN_MBIST_CTRL_WIDTH - 1:0] mbist_ctrl_i        // bist chain shift control
-`endif
 );
 
 
@@ -769,14 +760,6 @@ can_bsp i_can_bsp
   .go_tx(go_tx),
   .send_ack(send_ack)
 
-
-`ifdef CAN_BIST
-  ,
-  /* BIST signals */
-  .mbist_si_i(mbist_si_i),
-  .mbist_so_o(mbist_so_o),
-  .mbist_ctrl_i(mbist_ctrl_i)
-`endif
 );
 
 // Multiplexing wb_dat_o from registers and rx fifo
