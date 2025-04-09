@@ -479,6 +479,8 @@ reg           rx_stuff_count;
 reg           rx_crc;
 reg           rx_crc_lim;
 reg           rx_ack;
+reg           rx_ack_fd_1;
+reg           rx_ack_fd_2; // Extra ACK Slot segment for handling phase shift on FD frames
 reg           rx_ack_lim;
 reg           rx_eof;
 reg           go_early_tx_latched;
@@ -595,6 +597,8 @@ wire          go_rx_stuff_count;
 wire          go_rx_crc;
 wire          go_rx_crc_lim;
 wire          go_rx_ack;
+wire          go_rx_ack_fd_1;
+wire          go_rx_ack_fd_2;
 wire          go_rx_ack_lim;
 wire          go_rx_eof;
 //wire          go_rx_inter;
@@ -722,8 +726,10 @@ assign go_rx_crc_lim  = (~bit_de_stuff) & sample_point &  rx_crc  &  ( ( ~fdf_br
                                                                        (  fdf_brs_r & data_len  > 7'd16 & (bit_cnt[4:0] == 5'd26) )  
                                                                      );
 
-assign go_rx_ack      = (~bit_de_stuff) & sample_point &  rx_crc_lim;
-assign go_rx_ack_lim  =                   sample_point &  rx_ack;
+assign go_rx_ack      =  (~bit_de_stuff) & sample_point &  rx_crc_lim & (~edl) & (~en_FD_rx);
+assign go_rx_ack_fd_1 =  (~bit_de_stuff) & sample_point &  rx_crc_lim & (edl) & (en_FD_rx);
+assign go_rx_ack_fd_2 =  (~bit_de_stuff) & sample_point &  rx_ack_fd_1;
+assign go_rx_ack_lim  =  sample_point &  (rx_ack | rx_ack_fd_2);
 assign go_rx_eof      =                   sample_point &  rx_ack_lim;
 
 assign go_rx_inter = FD_tolerant ? ( ((sample_point &  rx_eof  & (eof_cnt == 3'd6)) | error_frame_ended | overload_frame_ended | fd_skip_finished) & (~overload_request) ) : ( ((sample_point &  rx_eof  & (eof_cnt == 3'd6)) | error_frame_ended | overload_frame_ended) & (~overload_request) );
@@ -745,14 +751,14 @@ assign rst_crc_enable = FD_tolerant ? (go_rx_crc | go_rx_skip_fdf) : (go_rx_crc)
 
 assign bit_de_stuff_set   = go_rx_id1 & (~go_error_frame);
 
-assign bit_de_stuff_reset = FD_tolerant ? (go_rx_ack | go_error_frame | go_overload_frame | go_rx_skip_fdf) : (go_rx_ack | go_error_frame | go_overload_frame);
+assign bit_de_stuff_reset = FD_tolerant ? (go_rx_ack | go_error_frame | go_overload_frame | go_rx_skip_fdf) : (go_rx_ack | go_rx_ack_fd_1 | go_rx_ack_fd_2 | go_error_frame | go_overload_frame);
 
 assign remote_rq = ((~ide) & rtr1) | (ide & rtr2);
 
 assign ack_err = rx_ack & sample_point & sampled_bit & tx_state & (~self_test_mode);
 assign bit_err = (tx_state | error_frame | overload_frame | rx_ack) & sample_point & (tx != sampled_bit) & (~bit_err_exc1) & (~bit_err_exc2) & (~bit_err_exc3) & (~bit_err_exc4) & (~bit_err_exc5) & (~bit_err_exc6) & (~reset_mode);
 assign bit_err_exc1 = tx_state & arbitration_field & tx;
-assign bit_err_exc2 = rx_ack & tx;
+assign bit_err_exc2 = (rx_ack | rx_ack_fd_1 | rx_ack_fd_2) & tx;
 assign bit_err_exc3 = error_frame & node_error_passive & (error_cnt1 < 3'd7);
 assign bit_err_exc4 = (error_frame & (error_cnt1 == 3'd7) & (~enable_error_cnt2)) | (overload_frame & (overload_cnt1 == 3'd7) & (~enable_overload_cnt2));
 assign bit_err_exc5 = (error_frame & (error_cnt2 == 3'd7)) | (overload_frame & (overload_cnt2 == 3'd7));
@@ -788,7 +794,7 @@ always @ (posedge clk or posedge rst)
 begin
   if (rst)
     fdf_brs_r <= 1'b0;
-  else if (reset_mode | go_rx_inter | go_error_frame | go_rx_ack )
+  else if (reset_mode | go_rx_inter | go_error_frame | go_rx_ack | go_rx_ack_fd_1 )
     fdf_brs_r <= 1'b0;
   else if (go_rx_brs_on_o)
     fdf_brs_r <= 1'b1;
@@ -1076,7 +1082,7 @@ always @ (posedge clk or posedge rst)
 begin
   if (rst)
     rx_crc_lim <= 1'b0;
-  else if (go_rx_ack | go_error_frame)
+  else if (go_rx_ack | go_rx_ack_fd_1 | go_error_frame)
     rx_crc_lim <= 1'b0;
   else if (go_rx_crc_lim)
     rx_crc_lim <= 1'b1;
@@ -1092,6 +1098,28 @@ begin
     rx_ack <= 1'b0;
   else if (go_rx_ack)
     rx_ack <= 1'b1;
+end
+
+// Rx ack fd 1 state
+always @ (posedge clk or posedge rst)
+begin
+  if (rst)
+    rx_ack_fd_1 <= 1'b0;
+  else if (go_rx_ack_fd_2 | go_error_frame)
+    rx_ack_fd_1 <= 1'b0;
+  else if (go_rx_ack_fd_1)
+    rx_ack_fd_1 <= 1'b1;
+end
+
+// Rx ack fd 2 state
+always @ (posedge clk or posedge rst)
+begin
+  if (rst)
+    rx_ack_fd_2 <= 1'b0;
+  else if (go_rx_ack_lim | go_error_frame)
+    rx_ack_fd_2 <= 1'b0;
+  else if (go_rx_ack_fd_2)
+    rx_ack_fd_2 <= 1'b1;
 end
 
 
@@ -1921,7 +1949,7 @@ begin
 end
 
 
-assign send_ack = (~tx_state) & rx_ack & (~err) & (~listen_only_mode);
+assign send_ack = (~tx_state) & (rx_ack | rx_ack_fd_1) & (~err) & (~listen_only_mode);
 
 
 

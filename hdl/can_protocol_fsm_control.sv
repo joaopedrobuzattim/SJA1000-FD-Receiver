@@ -59,6 +59,8 @@ module can_protocol_fsm_control
                 PC_CRC,
                 PC_CRC_LIM,
                 PC_ACK,
+                PC_ACK_FD_1,
+                PC_ACK_FD_2,
                 PC_ACK_LIM,
                 PC_EOF,
                 PC_INTER,
@@ -236,11 +238,28 @@ end
                 if (err_condition_i) begin
                     next_state = PC_ERROR;
                 end
-                else if ((~bit_de_stuff_i) & sample_point_i ) begin
-                     next_state = PC_ACK;
+                else if ((~bit_de_stuff_i) & sample_point_i & (~edl_i)) begin
+                    next_state = PC_ACK;
+                end 
+                else if ((~bit_de_stuff_i) & sample_point_i & (edl_i)) begin
+                    next_state = PC_ACK_FD_1;
                 end
             end
             PC_ACK: begin
+                if (err_condition_i) begin
+                    next_state = PC_ERROR;
+                end else if (sample_point_i) begin
+                    next_state = PC_ACK_LIM;
+                end
+            end
+            PC_ACK_FD_1: begin
+                if (err_condition_i) begin
+                    next_state = PC_ERROR;
+                end else if (sample_point_i) begin
+                    next_state = PC_ACK_FD_2;
+                end
+            end
+            PC_ACK_FD_2: begin
                 if (err_condition_i) begin
                     next_state = PC_ERROR;
                 end else if (sample_point_i) begin
