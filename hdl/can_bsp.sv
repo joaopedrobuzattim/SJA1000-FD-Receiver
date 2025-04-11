@@ -726,7 +726,7 @@ assign go_rx_crc_lim  = (~bit_de_stuff) & sample_point &  rx_crc  &  ( ( ~fdf_br
                                                                        (  fdf_brs_r & data_len  > 7'd16 & (bit_cnt[4:0] == 5'd26) )  
                                                                      );
 
-assign go_rx_ack      =  (~bit_de_stuff) & sample_point &  rx_crc_lim & (~edl) & (~en_FD_rx);
+assign go_rx_ack      =  (~bit_de_stuff) & sample_point &  rx_crc_lim & (~edl);
 assign go_rx_ack_fd_1 =  (~bit_de_stuff) & sample_point &  rx_crc_lim & (edl) & (en_FD_rx);
 assign go_rx_ack_fd_2 =  (~bit_de_stuff) & sample_point &  rx_ack_fd_1;
 assign go_rx_ack_lim  =  sample_point &  (rx_ack | rx_ack_fd_2);

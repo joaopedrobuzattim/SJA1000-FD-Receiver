@@ -421,6 +421,235 @@ output  [7:0] acceptance_mask_3;
 
 /* End: This section is for EXTENDED mode */
 
+
+
+// ############################################################
+// ||                                                        ||
+// ||                       Reg Write                        ||
+// ||                                                        ||
+// ############################################################
+
+reg   [7:0] bus_timing_0;
+reg   [7:0] bus_timing_1;
+reg         mode;
+reg   [4:1] mode_basic;
+reg   [3:1] mode_ext;
+reg   [7:0] irq_en_ext;
+reg   [7:0] acceptance_code_0;
+reg   [7:0] acceptance_code_1;
+reg   [7:0] acceptance_code_2;
+reg   [7:0] acceptance_code_3;
+reg   [7:0] acceptance_mask_0;
+reg   [7:0] acceptance_mask_1;
+reg   [7:0] acceptance_mask_2;
+reg   [7:0] acceptance_mask_3;
+reg   [7:0] error_warning_limit;
+reg         extended_mode;
+reg   [7:0] bus_timing_0_FD;
+reg   [7:0] bus_timing_1_FD;
+reg   [1:0] fd_control_register;
+wire  [4:0] command;
+
+always_ff @( posedge clk, posedge rst ) begin
+  if(rst) begin
+    mode_basic          <= 'h0;
+    mode_ext            <= 'h0;
+    irq_en_ext          <= 'h0;
+    bus_timing_0        <= 'h0;
+    bus_timing_1        <= 'h0;
+    error_warning_limit <= 'd96;
+    extended_mode       <= 'h0;
+    acceptance_code_0   <= 'h0;
+    acceptance_code_1   <= 'h0;
+    acceptance_code_2   <= 'h0;
+    acceptance_code_3   <= 'h0;
+    acceptance_mask_0   <= 'h0;
+    acceptance_mask_1   <= 'h0;
+    acceptance_mask_2   <= 'h0;
+    acceptance_mask_3   <= 'h0;
+    bus_timing_0_FD     <= 'h0;
+    bus_timing_1_FD     <= 'h0;
+    fd_control_register <= 'h0;
+
+  end else begin
+    if(we) begin
+      case (addr_write)
+        5'd0: begin
+          mode_basic <= data_in[4:1];
+          if(reset_mode) begin
+            mode_ext <= data_in[3:1];
+          end
+        end
+        5'd4: begin
+          if(extended_mode) begin
+            irq_en_ext <= data_in[7:0];  
+          end
+          if(~extended_mode & reset_mode) begin
+            acceptance_code_0 <= data_in[7:0];
+          end
+        end
+        5'd5: begin
+          if(~extended_mode & reset_mode) begin
+            acceptance_mask_0 <= data_in[7:0];
+          end
+        end
+        5'd6: begin
+          if(reset_mode) begin
+            bus_timing_0 <= data_in[7:0];
+          end
+        end
+        5'd7: begin
+          if(reset_mode) begin
+            bus_timing_1 <= data_in[7:0];
+          end
+        end
+        5'd10: begin
+        end
+        5'd13: begin
+          if(reset_mode & extended_mode) begin
+            error_warning_limit <= data_in[7:0];
+          end
+        end
+        5'd14: begin
+        end
+        5'd15: begin
+        end
+        5'd16: begin
+          if(reset_mode) begin
+            if(extended_mode) begin
+              acceptance_code_0 <= data_in[7:0];
+            end
+          end
+          end
+        5'd17: begin
+          if(reset_mode) begin
+            if(extended_mode) begin
+              acceptance_code_1 <= data_in[7:0];
+            end
+          end
+        end
+        5'd18: begin
+          if(reset_mode) begin
+            if(extended_mode) begin
+              acceptance_code_2 <= data_in[7:0];
+            end
+          end
+        end
+        5'd19: begin
+          if(reset_mode) begin
+            if(extended_mode) begin
+              acceptance_code_3 <= data_in[7:0];
+            end
+          end
+        end
+        5'd20: begin
+          if(reset_mode) begin
+            if(extended_mode) begin
+              acceptance_mask_0 <= data_in[7:0];
+            end
+          end
+        end
+        5'd21: begin
+          if(reset_mode) begin
+            if(extended_mode) begin
+              acceptance_mask_1 <= data_in[7:0];
+            end
+          end
+        end
+        5'd22: begin
+          if(reset_mode) begin
+            if(extended_mode) begin
+              acceptance_mask_2 <= data_in[7:0];
+            end
+          end
+        end
+        5'd23: begin
+          if(reset_mode) begin
+            if(extended_mode) begin
+              acceptance_mask_3 <= data_in[7:0];
+            end
+          end
+        end
+        5'd24: begin
+          if (reset_mode & extended_mode) begin
+            fd_control_register <= data_in[1:0];
+          end
+        end
+        5'd25: begin
+          if (reset_mode & extended_mode) begin
+            bus_timing_0_FD <= data_in[7:0];
+          end
+        end
+        5'd26: begin
+          if (reset_mode & extended_mode) begin
+            bus_timing_1_FD <= data_in[7:0];
+          end
+        end
+        5'd31: begin
+          if(reset_mode) begin
+              extended_mode <= data_in[7];
+          end
+        end
+      endcase
+    end
+  end
+end
+
+
+can_register_asyn_syn #(1, 1'h1) MODE_REG0
+( .data_in(data_in[0]),
+  .data_out(mode),
+  .we(we & (addr_write == 8'd0)),
+  .clk(clk),
+  .rst(rst),
+  .rst_sync(set_reset_mode)
+);
+
+can_register_asyn_syn #(1, 1'h0) COMMAND_REG0
+( .data_in(data_in[0]),
+  .data_out(command[0]),
+  .we(we & (addr_write == 8'd1)),
+  .clk(clk),
+  .rst(rst),
+  .rst_sync(command[0] & sample_point | reset_mode)
+);
+
+can_register_asyn_syn #(1, 1'h0) COMMAND_REG1
+( .data_in(data_in[1]),
+  .data_out(command[1]),
+  .we(we & (addr_write == 8'd1)),
+  .clk(clk),
+  .rst(rst),
+  .rst_sync(sample_point & (tx_request | (abort_tx & ~transmitting)) | reset_mode)
+);
+
+can_register_asyn_syn #(2, 2'h0) COMMAND_REG
+( .data_in(data_in[3:2]),
+  .data_out(command[3:2]),
+  .we(we & (addr_write == 8'd1)),
+  .clk(clk),
+  .rst(rst),
+  .rst_sync(|command[3:2] | reset_mode)
+);
+
+can_register_asyn_syn #(1, 1'h0) COMMAND_REG4
+( .data_in(data_in[4]),
+  .data_out(command[4]),
+  .we(we & (addr_write == 8'd1)),
+  .clk(clk),
+  .rst(rst),
+  .rst_sync(command[4] & sample_point | reset_mode)
+);
+
+
+
+// ############################################################
+// ||                                                        ||
+// ||                   End Reg Write                        ||
+// ||                                                        ||
+// ############################################################
+
+
 reg           tx_successful_q;
 reg           overrun_q;
 reg           overrun_status;
@@ -444,44 +673,14 @@ wire          receive_irq_en;
 wire    [7:0] irq_reg;
 wire          irq;
 
-wire cs;
-assign cs = 1'b1;
-
-wire we_mode                  = cs & we & (addr_write == 8'd0);
-wire we_command               = cs & we & (addr_write == 8'd1);
-wire we_bus_timing_0          = cs & we & (addr_write == 8'd6) & reset_mode;
-wire we_bus_timing_0_FD       = (extended_mode & cs & we & (addr_write == 8'd25) & reset_mode);
-wire we_bus_timing_1          = cs & we & (addr_write == 8'd7) & reset_mode;
-wire we_bus_timing_1_FD       = (extended_mode & cs & we & (addr_write == 8'd26) & reset_mode);
-
-/* FD Data Bit Rate Register  */
-wire we_fd_control_register = (extended_mode & cs & we & (addr_write == 8'd24) & reset_mode);
-
-wire we_clock_divider_low     = cs & we & (addr_write == 8'd31);
-wire we_clock_divider_hi      = we_clock_divider_low & reset_mode;
-
-wire read = cs & re;
+wire read = re;
 wire read_irq_reg = read & (addr_read == 8'd3);
 assign read_arbitration_lost_capture_reg = read & extended_mode & (addr_read == 8'd11);
 assign read_error_code_capture_reg = read & extended_mode & (addr_read == 8'd12);
 
-/* This section is for BASIC and EXTENDED mode */
-wire we_acceptance_code_0       = cs & we &   reset_mode  & ((~extended_mode) & (addr_write == 8'd4)  | extended_mode & (addr_write == 8'd16));
-wire we_acceptance_mask_0       = cs & we &   reset_mode  & ((~extended_mode) & (addr_write == 8'd5)  | extended_mode & (addr_write == 8'd20));
-/* End: This section is for BASIC and EXTENDED mode */
-
-
 /* This section is for EXTENDED mode */
-wire   we_interrupt_enable      = cs & we & (addr_write == 8'd4)  & extended_mode;
-wire   we_error_warning_limit   = cs & we & (addr_write == 8'd13) & reset_mode & extended_mode;
-assign we_rx_err_cnt            = cs & we & (addr_write == 8'd14) & reset_mode & extended_mode;
-assign we_tx_err_cnt            = cs & we & (addr_write == 8'd15) & reset_mode & extended_mode;
-wire   we_acceptance_code_1     = cs & we & (addr_write == 8'd17) & reset_mode & extended_mode;
-wire   we_acceptance_code_2     = cs & we & (addr_write == 8'd18) & reset_mode & extended_mode;
-wire   we_acceptance_code_3     = cs & we & (addr_write == 8'd19) & reset_mode & extended_mode;
-wire   we_acceptance_mask_1     = cs & we & (addr_write == 8'd21) & reset_mode & extended_mode;
-wire   we_acceptance_mask_2     = cs & we & (addr_write == 8'd22) & reset_mode & extended_mode;
-wire   we_acceptance_mask_3     = cs & we & (addr_write == 8'd23) & reset_mode & extended_mode;
+assign we_rx_err_cnt            = we & (addr_write == 8'd14) & reset_mode & extended_mode;
+assign we_tx_err_cnt            = we & (addr_write == 8'd15) & reset_mode & extended_mode;
 /* End: This section is for EXTENDED mode */
 
 
@@ -498,66 +697,18 @@ end
 
 
 
-/* FD Control Register (FD_CONTROL_REG) */
-
-/* FD_CONTROL_REG.0 (RX_FD_EN) = Quando possuir valor dominante, o frame FD e recebido. Quando possui valor recessivo, o frame FD é ignorado ( FD Tolerant )*/
-/* FD_CONTROL_REG.1 = XX */
-/* FD_CONTROL_REG.2 = XX */
-/* FD_CONTROL_REG.3 = XX */
-/* FD_CONTROL_REG.4 = XX */
-/* FD_CONTROL_REG.5 = XX */
-/* FD_CONTROL_REG.6 = XX */
-/* FD_CONTROL_REG.7 = XX */
-
-wire  [7:0] fd_control_register;
-
-can_register_asyn #(8) FD_CONTROL_REG
-( .data_in(data_in),
-  .data_out(fd_control_register),
-  .we(we_fd_control_register),
-  .clk(clk),
-  .rst(rst)
-);
-
 assign en_FD_rx = fd_control_register[0];
 
 assign en_FD_iso = fd_control_register[0] & fd_control_register[1];
 
 /* Mode register */
-wire   [0:0] mode;
-wire   [4:1] mode_basic;
-wire   [3:1] mode_ext;
 wire         receive_irq_en_basic;
 wire         transmit_irq_en_basic;
 wire         error_irq_en_basic;
 wire         overrun_irq_en_basic;
 
-can_register_asyn_syn #(1, 1'h1) MODE_REG0
-( .data_in(data_in[0]),
-  .data_out(mode[0]),
-  .we(we_mode),
-  .clk(clk),
-  .rst(rst),
-  .rst_sync(set_reset_mode)
-);
 
-can_register_asyn #(4, 0) MODE_REG_BASIC
-( .data_in(data_in[4:1]),
-  .data_out(mode_basic[4:1]),
-  .we(we_mode),
-  .clk(clk),
-  .rst(rst)
-);
-
-can_register_asyn #(3, 0) MODE_REG_EXT
-( .data_in(data_in[3:1]),
-  .data_out(mode_ext[3:1]),
-  .we(we_mode & reset_mode),
-  .clk(clk),
-  .rst(rst)
-);
-
-assign reset_mode             = mode[0];
+assign reset_mode             = mode;
 assign listen_only_mode       = extended_mode & mode_ext[1];
 assign self_test_mode         = extended_mode & mode_ext[2];
 assign acceptance_filter_mode = extended_mode & mode_ext[3];
@@ -567,45 +718,6 @@ assign transmit_irq_en_basic = mode_basic[2];
 assign error_irq_en_basic    = mode_basic[3];
 assign overrun_irq_en_basic  = mode_basic[4];
 /* End Mode register */
-
-
-/* Command register */
-wire   [4:0] command;
-can_register_asyn_syn #(1, 1'h0) COMMAND_REG0
-( .data_in(data_in[0]),
-  .data_out(command[0]),
-  .we(we_command),
-  .clk(clk),
-  .rst(rst),
-  .rst_sync(command[0] & sample_point | reset_mode)
-);
-
-can_register_asyn_syn #(1, 1'h0) COMMAND_REG1
-( .data_in(data_in[1]),
-  .data_out(command[1]),
-  .we(we_command),
-  .clk(clk),
-  .rst(rst),
-  .rst_sync(sample_point & (tx_request | (abort_tx & ~transmitting)) | reset_mode)
-);
-
-can_register_asyn_syn #(2, 2'h0) COMMAND_REG
-( .data_in(data_in[3:2]),
-  .data_out(command[3:2]),
-  .we(we_command),
-  .clk(clk),
-  .rst(rst),
-  .rst_sync(|command[3:2] | reset_mode)
-);
-
-can_register_asyn_syn #(1, 1'h0) COMMAND_REG4
-( .data_in(data_in[4]),
-  .data_out(command[4]),
-  .we(we_command),
-  .clk(clk),
-  .rst(rst),
-  .rst_sync(command[4] & sample_point | reset_mode)
-);
 
 
 always @ (posedge clk or posedge rst)
@@ -727,7 +839,6 @@ end
 
 
 /* Interrupt Enable register (extended mode) */
-wire   [7:0] irq_en_ext;
 wire         bus_error_irq_en;
 wire         arbitration_lost_irq_en;
 wire         error_passive_irq_en;
@@ -736,13 +847,7 @@ wire         error_warning_irq_en_ext;
 wire         transmit_irq_en_ext;
 wire         receive_irq_en_ext;
 
-can_register_asyn #(8) IRQ_EN_REG
-( .data_in(data_in),
-  .data_out(irq_en_ext),
-  .we(we_interrupt_enable),
-  .clk(clk),
-  .rst(rst)
-);
+
 
 
 assign bus_error_irq_en             = irq_en_ext[7];
@@ -755,30 +860,10 @@ assign receive_irq_en_ext           = irq_en_ext[0];
 /* End Bus Timing 0 register */
 
 
-/* Bus Timing 0 register */
-wire   [7:0] bus_timing_0;
-can_register_asyn #(8) BUS_TIMING_0_REG
-( .data_in(data_in),
-  .data_out(bus_timing_0),
-  .we(we_bus_timing_0),
-  .clk(clk),
-  .rst(rst)
-);
-
 assign baud_r_presc = bus_timing_0[5:0];
 assign sync_jump_width = bus_timing_0[7:6];
 /* End Bus Timing 0 register */
 
-
-/* Bus Timing 1 register */
-wire   [7:0] bus_timing_1;
-can_register_asyn #(8) BUS_TIMING_1_REG
-( .data_in(data_in),
-  .data_out(bus_timing_1),
-  .we(we_bus_timing_1),
-  .clk(clk),
-  .rst(rst)
-);
 
 assign time_segment1 = bus_timing_1[3:0];
 assign time_segment2 = bus_timing_1[6:4];
@@ -786,30 +871,10 @@ assign triple_sampling = bus_timing_1[7];
 
 /* End Bus Timing 1 register */
 
-/* Bus Timing 0 register */
-wire   [7:0] bus_timing_0_FD;
-can_register_asyn #(8) BUS_TIMING_0_REG_FD
-( .data_in(data_in),
-  .data_out(bus_timing_0_FD),
-  .we(we_bus_timing_0_FD),
-  .clk(clk),
-  .rst(rst)
-);
-
 assign baud_r_presc_fd = bus_timing_0_FD[5:0];
 assign sync_jump_width_fd = bus_timing_0_FD[7:6];
 /* End Bus Timing 0 register */
 
-
-/* Bus Timing 1 - FD register */
-wire   [7:0] bus_timing_1_FD;
-can_register_asyn #(8) BUS_TIMING_1_REG_FD
-( .data_in(data_in),
-  .data_out(bus_timing_1_FD),
-  .we(we_bus_timing_1_FD),
-  .clk(clk),
-  .rst(rst)
-);
 
 assign time_segment1_fd = bus_timing_1_FD[3:0];
 assign time_segment2_fd = bus_timing_1_FD[6:4];
@@ -817,149 +882,18 @@ assign triple_sampling_fd = bus_timing_1_FD[7];
 /* End Bus Timing 1 - FD register */
 
 
-/* Error Warning Limit register */
-can_register_asyn #(8, 96) ERROR_WARNING_REG
-( .data_in(data_in),
-  .data_out(error_warning_limit),
-  .we(we_error_warning_limit),
-  .clk(clk),
-  .rst(rst)
-);
-/* End Error Warning Limit register */
-
-
-
-/* Clock Divider register */
-wire   [7:0] clock_divider;
-
-can_register_asyn #(1, 0) CLOCK_DIVIDER_REG_7
-( .data_in(data_in[7]),
-  .data_out(clock_divider[7]),
-  .we(we_clock_divider_hi),
-  .clk(clk),
-  .rst(rst)
-);
-
-assign clock_divider[6:4] = 3'h0;
-
-can_register_asyn #(1, 0) CLOCK_DIVIDER_REG_3
-( .data_in(data_in[3]),
-  .data_out(clock_divider[3]),
-  .we(we_clock_divider_hi),
-  .clk(clk),
-  .rst(rst)
-);
-
-can_register_asyn #(3, 0) CLOCK_DIVIDER_REG_LOW
-( .data_in(data_in[2:0]),
-  .data_out(clock_divider[2:0]),
-  .we(we_clock_divider_low),
-  .clk(clk),
-  .rst(rst)
-);
-
-assign extended_mode = clock_divider[7];
-
-/* This section is for BASIC and EXTENDED mode */
-
-/* Acceptance code register */
-can_register_asyn #(8) ACCEPTANCE_CODE_REG0
-( .data_in(data_in),
-  .data_out(acceptance_code_0),
-  .we(we_acceptance_code_0),
-  .clk(clk),
-  .rst(rst)
-);
-/* End: Acceptance code register */
-
-
-/* Acceptance mask register */
-can_register_asyn #(8) ACCEPTANCE_MASK_REG0
-( .data_in(data_in),
-  .data_out(acceptance_mask_0),
-  .we(we_acceptance_mask_0),
-  .clk(clk),
-  .rst(rst)
-);
-/* End: Acceptance mask register */
-/* End: This section is for BASIC and EXTENDED mode */
-
-/* This section is for EXTENDED mode */
-
-/* Acceptance code register 1 */
-can_register_asyn #(8) ACCEPTANCE_CODE_REG1
-( .data_in(data_in),
-  .data_out(acceptance_code_1),
-  .we(we_acceptance_code_1),
-  .clk(clk),
-  .rst(rst)
-);
-/* End: Acceptance code register */
-
-
-/* Acceptance code register 2 */
-can_register_asyn #(8) ACCEPTANCE_CODE_REG2
-( .data_in(data_in),
-  .data_out(acceptance_code_2),
-  .we(we_acceptance_code_2),
-  .clk(clk),
-  .rst(rst)
-);
-/* End: Acceptance code register */
-
-
-/* Acceptance code register 3 */
-can_register_asyn #(8) ACCEPTANCE_CODE_REG3
-( .data_in(data_in),
-  .data_out(acceptance_code_3),
-  .we(we_acceptance_code_3),
-  .clk(clk),
-  .rst(rst)
-);
-/* End: Acceptance code register */
-
-
-/* Acceptance mask register 1 */
-can_register_asyn #(8) ACCEPTANCE_MASK_REG1
-( .data_in(data_in),
-  .data_out(acceptance_mask_1),
-  .we(we_acceptance_mask_1),
-  .clk(clk),
-  .rst(rst)
-);
-/* End: Acceptance code register */
-
-
-/* Acceptance mask register 2 */
-can_register_asyn #(8) ACCEPTANCE_MASK_REG2
-( .data_in(data_in),
-  .data_out(acceptance_mask_2),
-  .we(we_acceptance_mask_2),
-  .clk(clk),
-  .rst(rst)
-);
-/* End: Acceptance code register */
-
-
-/* Acceptance mask register 3 */
-can_register_asyn #(8) ACCEPTANCE_MASK_REG3
-( .data_in(data_in),
-  .data_out(acceptance_mask_3),
-  .we(we_acceptance_mask_3),
-  .clk(clk),
-  .rst(rst)
-);
-/* End: Acceptance code register */
-
-
-/* End: This section is for EXTENDED mode */
+// ############################################################
+// ||                                                        ||
+// ||                       Reg Read                         ||
+// ||                                                        ||
+// ############################################################
 
 // Reading data from 8-bit registers 
 always @ (*)
 begin
   //data_out = addr_read; // DBG
   case({extended_mode, addr_read[4:0]})  // synthesis parallel_case
-    {1'h1, 5'd00} :  data_out = {4'b0000, mode_ext[3:1], mode[0]};      // extended mode
+    {1'h1, 5'd00} :  data_out = {4'b0000, mode_ext[3:1], mode};      // extended mode
     {1'h1, 5'd01} :  data_out = 8'h0;                                   // extended mode
     {1'h1, 5'd02} :  data_out = status;                                 // extended mode
     {1'h1, 5'd03} :  data_out = irq_reg;                                // extended mode
@@ -984,8 +918,8 @@ begin
     {1'h1, 5'd27} :  data_out = 8'h0;                                   // extended mode
     {1'h1, 5'd28} :  data_out = 8'h0;                                   // extended mode
     {1'h1, 5'd29} :  data_out = {1'b0, rx_message_counter};             // extended mode
-    {1'h1, 5'd31} :  data_out = clock_divider;                          // extended mode
-    {1'h0, 5'd00} :  data_out = {3'b001, mode_basic[4:1], mode[0]};     // basic mode
+    {1'h1, 5'd31} :  data_out = {extended_mode, 7'b0};                  // extended mode
+    {1'h0, 5'd00} :  data_out = {3'b001, mode_basic[4:1], mode};        // basic mode
     {1'h0, 5'd01} :  data_out = 8'hff;                                  // basic mode
     {1'h0, 5'd02} :  data_out = status;                                 // basic mode
     {1'h0, 5'd03} :  data_out = {4'he, irq_reg[3:0]};                   // basic mode
@@ -1005,6 +939,19 @@ begin
     default :  data_out = 8'h0;                                   // the rest is read as 0
   endcase
 end
+
+// ############################################################
+// ||                                                        ||
+// ||                   End Reg Read                         ||
+// ||                                                        ||
+// ############################################################
+
+
+// ############################################################
+// ||                                                        ||
+// ||                       Interruptions                    ||
+// ||                                                        ||
+// ############################################################
 
 
 // Some interrupts exist in basic mode and in extended mode. Since they are in different registers they need to be multiplexed.
@@ -1116,6 +1063,11 @@ begin
 end
 
 
+// ############################################################
+// ||                                                        ||
+// ||                   End Interruptions                    ||
+// ||                                                        ||
+// ############################################################
 
 endmodule
 
