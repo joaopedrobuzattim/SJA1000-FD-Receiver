@@ -299,7 +299,7 @@ input         re;
 input         we;
 input   [7:0] addr_read;
 input   [7:0] addr_write;
-input   [7:0] data_in;
+input   [31:0] data_in;
 
 output  [7:0] data_out;
 

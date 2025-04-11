@@ -220,8 +220,8 @@ module can_top_raw
   input  wire        reg_we_i,
   input  wire [7:0]  reg_addr_read_i,
   input  wire [7:0]  reg_addr_write_i,
-  input  wire [7:0]  reg_data_in,
-  output reg  [7:0]  reg_data_out,
+  input  wire [31:0]  reg_data_in,
+  output reg  [31:0]  reg_data_out,
 
   // Transmission Buffer Ports
   input               tx_we_i,
@@ -776,9 +776,9 @@ begin
   if (cs & re)
     begin
       if(data_out_fifo_selected) begin
-        reg_data_out <= data_out_fifo;
+        reg_data_out <= {24'b0, data_out_fifo};
       end else begin
-        reg_data_out <= data_out_regs;
+        reg_data_out <= {24'b0,data_out_regs};
       end
     end
 end
