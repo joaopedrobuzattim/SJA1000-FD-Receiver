@@ -15,8 +15,8 @@ logic      can_bus_short_rx;
 struct { 
   logic reg_we;
   logic reg_re;
-  logic [7:0] reg_data_in;
-  logic [7:0] can_reg_data_out;
+  logic [31:0] reg_data_in;
+  logic [31:0] can_reg_data_out;
   logic [7:0] reg_addr_read;
   logic [7:0] reg_addr_write;
   logic rx_i;
@@ -31,8 +31,8 @@ struct {
 struct { 
   logic reg_we;
   logic reg_re;
-  logic [7:0] reg_data_in;
-  logic [7:0] can_reg_data_out;
+  logic [31:0] reg_data_in;
+  logic [31:0] can_reg_data_out;
   logic [7:0] reg_addr_read;
   logic [7:0] reg_addr_write;
   logic rx_i;
@@ -151,10 +151,10 @@ begin
 
   #1000;
 
-  fd_frame_ISO_on_bus();
+  //fd_frame_ISO_on_bus();
   //fd_frame_NON_ISO_on_bus();
   //error_caused_by_receiving_ISO_FD_Frame();
-  // SJA1000_send_extended_frame();
+  //SJA1000_send_extended_frame();
   //loop_sending_extended_frame();
 
   #12000;
@@ -194,8 +194,8 @@ endtask
 
 // Description: On this task, wr on CAN FD Tolerant is performed
 task write_CAN_FD_Tolerant_Register;
-  input [7:0] reg_addr;
-  input [7:0] reg_data;
+  input [31:0] reg_addr;
+  input [31:0] reg_data;
 
   begin
     $display("----------------------------------------\n");
@@ -215,8 +215,8 @@ endtask
 
 // Description: On this task, wr on CAN FD Receiver is performed
 task write_CAN_FD_Receiver_Register;
-  input [7:0] reg_addr;
-  input [7:0] reg_data;
+  input [31:0] reg_addr;
+  input [31:0] reg_data;
 
   begin
     $display("----------------------------------------\n");
