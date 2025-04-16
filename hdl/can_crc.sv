@@ -75,9 +75,9 @@
 module can_crc (clk, data, stuff_bit, enable, initialize, FD_iso, crc_15, crc_17, crc_21);
 
 
-parameter CRC15_POL = 15'hC599;
-parameter CRC17_POL = 17'h3685B;
-parameter CRC21_POL = 21'h302899;
+parameter CRC15_POL = 16'hC599;
+parameter CRC17_POL = 20'h3685B;
+parameter CRC21_POL = 24'h302899;
 
 input         clk;
 input         data;

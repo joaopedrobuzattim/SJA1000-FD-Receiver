@@ -450,6 +450,7 @@ reg   [7:0] error_warning_limit;
 reg         extended_mode;
 reg   [1:0] fd_control_register;
 wire  [4:0] command;
+reg           overload_frame_q;
 
 reg   [6:0] prop_seg;
 reg   [5:0] phase_seg_1;
@@ -652,16 +653,15 @@ can_register_asyn_syn #(1, 1'h0) COMMAND_REG4
   .rst_sync(command[4] & sample_point | reset_mode)
 );
 
-can_register_asyn_syn #(1, 1'h0) COMMAND_REG_OVERLOAD  // Uncomment this to enable overload requests !!!
+can_register_asyn_syn #(1, 1'h0) COMMAND_REG_OVERLOAD 
 ( .data_in(data_in[5]),
   .data_out(overload_request),
-  .we(we_command),
+  .we(we & (addr_write == 8'd1)),
   .clk(clk),
   .rst(rst),
   .rst_sync(overload_frame & ~overload_frame_q)
 );
 
-reg           overload_frame_q;
 
 always @ (posedge clk or posedge rst)
 begin
