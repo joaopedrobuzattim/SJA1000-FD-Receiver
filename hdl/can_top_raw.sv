@@ -281,18 +281,20 @@ wire         read_arbitration_lost_capture_reg;
 wire         read_error_code_capture_reg;
 wire   [7:0] error_capture_code;
 
-/* Bus Timing 0 register */
-wire   [5:0] baud_r_presc;
-wire   [1:0] sync_jump_width;
-wire   [5:0] baud_r_presc_fd;
-wire   [1:0] sync_jump_width_fd;
-
-/* Bus Timing 1 register */
-wire   [3:0] time_segment1;
-wire   [2:0] time_segment2;
+/* Bus Timing */
+wire   [6:0] prop_seg;
+wire   [5:0] phase_seg_1;
+wire   [5:0] phase_seg_2;
+wire   [6:0] baud_r_presc;
+wire   [4:0] sjw;
 wire         triple_sampling;
-wire   [3:0] time_segment1_fd;
-wire   [2:0] time_segment2_fd;
+
+/* Bus Timing FD*/
+wire   [5:0] prop_seg_fd;
+wire   [4:0] phase_seg_1_fd;
+wire   [4:0] phase_seg_2_fd;
+wire   [6:0] baud_r_presc_fd;
+wire   [4:0] sjw_fd;
 wire         triple_sampling_fd;
 
 /* Error Warning Limit register */
@@ -476,18 +478,20 @@ can_registers i_can_registers
   .read_error_code_capture_reg(read_error_code_capture_reg),
   .error_capture_code(error_capture_code),
 
-  /* Bus Timing 0 register */
+  /* Bus Timing Register */
+  .prop_seg(prop_seg),
+  .phase_seg_1(phase_seg_1),
+  .phase_seg_2(phase_seg_2),
   .baud_r_presc(baud_r_presc),
-  .sync_jump_width(sync_jump_width),
-  .baud_r_presc_fd(baud_r_presc_fd),
-  .sync_jump_width_fd(sync_jump_width_fd),
-
-  /* Bus Timing 1 register */
-  .time_segment1(time_segment1),
-  .time_segment2(time_segment2),
+  .sjw(sjw),
   .triple_sampling(triple_sampling),
-  .time_segment1_fd(time_segment1_fd),
-  .time_segment2_fd(time_segment2_fd),
+
+  /* Bus Timing FD Register */
+  .prop_seg_fd(prop_seg_fd),
+  .phase_seg_1_fd(phase_seg_1_fd),
+  .phase_seg_2_fd(phase_seg_2_fd),
+  .baud_r_presc_fd(baud_r_presc_fd),
+  .sjw_fd(sjw_fd),
   .triple_sampling_fd(triple_sampling_fd),
 
   /* Error Warning Limit register */
@@ -575,18 +579,20 @@ can_btl i_can_btl
   .rx(rx_sync),
   .tx(tx_o),
 
-  /* Bus Timing 0 register */
+  /* Bus Timing Register */
+  .prop_seg(prop_seg),
+  .phase_seg_1(phase_seg_1),
+  .phase_seg_2(phase_seg_2),
   .baud_r_presc(baud_r_presc),
-  .sync_jump_width(sync_jump_width),
-  .baud_r_presc_fd(baud_r_presc_fd),
-  .sync_jump_width_fd(sync_jump_width_fd),
-
-  /* Bus Timing 1 register */
-  .time_segment1(time_segment1),
-  .time_segment2(time_segment2),
+  .sjw(sjw),
   .triple_sampling(triple_sampling),
-  .time_segment1_fd(time_segment1_fd),
-  .time_segment2_fd(time_segment2_fd),
+
+  /* Bus Timing FD Register */
+  .prop_seg_fd(prop_seg_fd),
+  .phase_seg_1_fd(phase_seg_1_fd),
+  .phase_seg_2_fd(phase_seg_2_fd),
+  .baud_r_presc_fd(baud_r_presc_fd),
+  .sjw_fd(sjw_fd),
   .triple_sampling_fd(triple_sampling_fd),
 
   /* FD Control Register  */

@@ -241,18 +241,20 @@ module can_registers
   read_error_code_capture_reg,
   error_capture_code,
 
-  /* Bus Timing 0 register */
+  /* Bus Timing Register */
+  prop_seg,
+  phase_seg_1,
+  phase_seg_2,
   baud_r_presc,
-  sync_jump_width,
-  baud_r_presc_fd,
-  sync_jump_width_fd,
-
-  /* Bus Timing 1 register */
-  time_segment1,
-  time_segment2,
+  sjw,
   triple_sampling,
-  time_segment1_fd,
-  time_segment2_fd,
+
+  /* Bus Timing Register FD */
+  prop_seg_fd,
+  phase_seg_1_fd,
+  phase_seg_2_fd,
+  baud_r_presc_fd,
+  sjw_fd,
   triple_sampling_fd,
 
   /* FD Control Register  */
@@ -371,20 +373,23 @@ output        read_arbitration_lost_capture_reg;
 output        read_error_code_capture_reg;
 input   [7:0] error_capture_code;
 
-/* Bus Timing 0 register */
-output  [5:0] baud_r_presc;
-output  [1:0] sync_jump_width;
-output  [5:0] baud_r_presc_fd;
-output  [1:0] sync_jump_width_fd;
-
-
-/* Bus Timing 1 register */
-output  [3:0] time_segment1;
-output  [2:0] time_segment2;
+/* Bus Timing Register */
+output  [6:0] prop_seg;
+output  [5:0] phase_seg_1;
+output  [5:0] phase_seg_2;
+output  [6:0] baud_r_presc;
+output  [4:0] sjw;
 output        triple_sampling;
-output  [3:0] time_segment1_fd;
-output  [2:0] time_segment2_fd;
-output        triple_sampling_fd;
+
+
+
+/* Bus Timing Register FD */
+output [5:0] prop_seg_fd;
+output [4:0] phase_seg_1_fd;
+output [4:0] phase_seg_2_fd;
+output [6:0] baud_r_presc_fd;
+output [4:0] sjw_fd;
+output       triple_sampling_fd;
 
 /* Error Warning Limit register */
 output  [7:0] error_warning_limit;
@@ -429,8 +434,6 @@ output  [7:0] acceptance_mask_3;
 // ||                                                        ||
 // ############################################################
 
-reg   [7:0] bus_timing_0;
-reg   [7:0] bus_timing_1;
 reg         mode;
 reg   [4:1] mode_basic;
 reg   [3:1] mode_ext;
@@ -445,18 +448,28 @@ reg   [7:0] acceptance_mask_2;
 reg   [7:0] acceptance_mask_3;
 reg   [7:0] error_warning_limit;
 reg         extended_mode;
-reg   [7:0] bus_timing_0_FD;
-reg   [7:0] bus_timing_1_FD;
 reg   [1:0] fd_control_register;
 wire  [4:0] command;
+
+reg   [6:0] prop_seg;
+reg   [5:0] phase_seg_1;
+reg   [5:0] phase_seg_2;
+reg   [6:0] baud_r_presc;
+reg   [4:0] sjw;
+reg         triple_sampling;
+
+reg   [5:0] prop_seg_fd;
+reg   [4:0] phase_seg_1_fd;
+reg   [4:0] phase_seg_2_fd;
+reg   [6:0] baud_r_presc_fd;
+reg   [4:0] sjw_fd;
+reg         triple_sampling_fd;
 
 always_ff @( posedge clk, posedge rst ) begin
   if(rst) begin
     mode_basic          <= 'h0;
     mode_ext            <= 'h0;
     irq_en_ext          <= 'h0;
-    bus_timing_0        <= 'h0;
-    bus_timing_1        <= 'h0;
     error_warning_limit <= 'd96;
     extended_mode       <= 'h0;
     acceptance_code_0   <= 'h0;
@@ -467,8 +480,6 @@ always_ff @( posedge clk, posedge rst ) begin
     acceptance_mask_1   <= 'h0;
     acceptance_mask_2   <= 'h0;
     acceptance_mask_3   <= 'h0;
-    bus_timing_0_FD     <= 'h0;
-    bus_timing_1_FD     <= 'h0;
     fd_control_register <= 'h0;
 
   end else begin
@@ -495,12 +506,22 @@ always_ff @( posedge clk, posedge rst ) begin
         end
         5'd6: begin
           if(reset_mode) begin
-            bus_timing_0 <= data_in[7:0];
+            prop_seg        <= data_in[6:0];
+            phase_seg_1     <= data_in[12:7];
+            phase_seg_2     <= data_in[18:13];
+            baud_r_presc    <= data_in[25:19];
+            sjw             <= data_in[30:26];
+            triple_sampling <= data_in[31];
           end
         end
         5'd7: begin
           if(reset_mode) begin
-            bus_timing_1 <= data_in[7:0];
+            prop_seg_fd        <= data_in[5:0];
+            phase_seg_1_fd     <= data_in[11:7];
+            phase_seg_2_fd     <= data_in[17:13];
+            baud_r_presc_fd    <= data_in[25:19];
+            sjw_fd             <= data_in[30:26];
+            triple_sampling_fd <= data_in[31];
           end
         end
         5'd10: begin
@@ -575,16 +596,6 @@ always_ff @( posedge clk, posedge rst ) begin
             fd_control_register <= data_in[1:0];
           end
         end
-        5'd25: begin
-          if (reset_mode & extended_mode) begin
-            bus_timing_0_FD <= data_in[7:0];
-          end
-        end
-        5'd26: begin
-          if (reset_mode & extended_mode) begin
-            bus_timing_1_FD <= data_in[7:0];
-          end
-        end
         5'd31: begin
           if(reset_mode) begin
               extended_mode <= data_in[7];
@@ -640,6 +651,25 @@ can_register_asyn_syn #(1, 1'h0) COMMAND_REG4
   .rst(rst),
   .rst_sync(command[4] & sample_point | reset_mode)
 );
+
+can_register_asyn_syn #(1, 1'h0) COMMAND_REG_OVERLOAD  // Uncomment this to enable overload requests !!!
+( .data_in(data_in[5]),
+  .data_out(overload_request),
+  .we(we_command),
+  .clk(clk),
+  .rst(rst),
+  .rst_sync(overload_frame & ~overload_frame_q)
+);
+
+reg           overload_frame_q;
+
+always @ (posedge clk or posedge rst)
+begin
+  if (rst)
+    overload_frame_q <= 1'b0;
+  else
+    overload_frame_q <= overload_frame;
+end
 
 
 
@@ -748,34 +778,6 @@ begin
 end
 
 
-/*
-can_register_asyn_syn #(1, 1'h0) COMMAND_REG_OVERLOAD  // Uncomment this to enable overload requests !!!
-( .data_in(data_in[5]),
-  .data_out(overload_request),
-  .we(we_command),
-  .clk(clk),
-  .rst(rst),
-  .rst_sync(overload_frame & ~overload_frame_q)
-);
-
-reg           overload_frame_q;
-
-always @ (posedge clk or posedge rst)
-begin
-  if (rst)
-    overload_frame_q <= 1'b0;
-  else
-    overload_frame_q <= overload_frame;
-end
-*/
-assign overload_request = 0;  // Overload requests are not supported, yet !!!
-
-
-
-
-
-/* End Command register */
-
 
 /* Status register */
 
@@ -860,28 +862,6 @@ assign receive_irq_en_ext           = irq_en_ext[0];
 /* End Bus Timing 0 register */
 
 
-assign baud_r_presc = bus_timing_0[5:0];
-assign sync_jump_width = bus_timing_0[7:6];
-/* End Bus Timing 0 register */
-
-
-assign time_segment1 = bus_timing_1[3:0];
-assign time_segment2 = bus_timing_1[6:4];
-assign triple_sampling = bus_timing_1[7];
-
-/* End Bus Timing 1 register */
-
-assign baud_r_presc_fd = bus_timing_0_FD[5:0];
-assign sync_jump_width_fd = bus_timing_0_FD[7:6];
-/* End Bus Timing 0 register */
-
-
-assign time_segment1_fd = bus_timing_1_FD[3:0];
-assign time_segment2_fd = bus_timing_1_FD[6:4];
-assign triple_sampling_fd = bus_timing_1_FD[7];
-/* End Bus Timing 1 - FD register */
-
-
 // ############################################################
 // ||                                                        ||
 // ||                       Reg Read                         ||
@@ -891,7 +871,6 @@ assign triple_sampling_fd = bus_timing_1_FD[7];
 // Reading data from 8-bit registers 
 always @ (*)
 begin
-  //data_out = addr_read; // DBG
   case({extended_mode, addr_read[4:0]})  // synthesis parallel_case
     {1'h1, 5'd00} :  data_out = {4'b0000, mode_ext[3:1], mode};      // extended mode
     {1'h1, 5'd01} :  data_out = 8'h0;                                   // extended mode
