@@ -132,6 +132,59 @@ can_top_level ctu_can_fd
   .timestamp(t_ctu_can_fd.timestamp)
 );
 
+// CTU CAN FD - Timing Parameters
+struct {
+  logic [6:0] prop_seg           = 7'd29;
+  logic [5:0] phase_seg_1        = 6'd10;
+  logic [5:0] phase_seg_2        = 6'd10;
+  logic [7:0] baud_r_presc       = 8'd4;
+  logic [4:0] sjw                = 5'd3;
+
+  logic [5:0] prop_seg_fd        = 6'd29;
+  logic [4:0] phase_seg_1_fd     = 5'd10;
+  logic [4:0] phase_seg_2_fd     = 5'd10;
+  logic [7:0] baud_r_presc_fd    = 8'd2;
+  logic [4:0] sjw_fd             = 5'd3;
+  
+} ctu_can_fd_timing;
+
+// CAN FD Tolerant - Timing Parameters
+struct {
+  logic [6:0] prop_seg           = 7'd29;
+  logic [5:0] phase_seg_1        = 6'd9;
+  logic [5:0] phase_seg_2        = 6'd9;
+  logic [6:0] baud_r_presc       = 8'd1;
+  logic [4:0] sjw                = 5'd2;
+  logic       triple_sampling    = 1'b1;
+
+  logic [5:0] prop_seg_fd        = 6'd29;
+  logic [4:0] phase_seg_1_fd     = 5'd9;
+  logic [4:0] phase_seg_2_fd     = 5'd9;
+  logic [6:0] baud_r_presc_fd    = 8'd0;
+  logic [4:0] sjw_fd             = 5'd2;
+  logic       triple_sampling_fd = 1'b1;
+  
+} can_fd_tolerant_timing;
+
+// CAN FD Receiver - Timing Parameters
+struct {
+  logic [6:0] prop_seg           = 7'd29;
+  logic [5:0] phase_seg_1        = 6'd9;
+  logic [5:0] phase_seg_2        = 6'd9;
+  logic [6:0] baud_r_presc       = 8'd1;
+  logic [4:0] sjw                = 5'd2;
+  logic       triple_sampling    = 1'b1;
+
+  logic [5:0] prop_seg_fd        = 6'd29;
+  logic [4:0] phase_seg_1_fd     = 5'd9;
+  logic [4:0] phase_seg_2_fd     = 5'd9;
+  logic [6:0] baud_r_presc_fd    = 8'd0;
+  logic [4:0] sjw_fd             = 5'd2;
+  logic       triple_sampling_fd = 1'b1;
+  
+} can_fd_receiver_timing;
+
+
 // Shorting RX Chanel
 assign can_bus_short_rx = t_can_fd_tolerant.tx_o & t_ctu_can_fd.can_tx & t_can_fd_receiver.tx_o;
 
@@ -151,7 +204,7 @@ begin
 
   #1000;
 
-  //fd_frame_ISO_on_bus();
+  fd_frame_ISO_on_bus();
   //fd_frame_NON_ISO_on_bus();
   //error_caused_by_receiving_ISO_FD_Frame();
   //SJA1000_send_extended_frame();
@@ -285,8 +338,23 @@ begin
   // Baud Rate FD -> 2Mbit/s
 
 
-  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + BTR_OFFSET, 32'b00011000001000010100010100011101);
-  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + BTR_FD_OFFSET, 32'b00011000000010010100010100011101);
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + BTR_OFFSET, {
+    ctu_can_fd_timing.sjw,
+    ctu_can_fd_timing.baud_r_presc,
+    ctu_can_fd_timing.phase_seg_2,
+    ctu_can_fd_timing.phase_seg_1,
+    ctu_can_fd_timing.prop_seg
+  });
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + BTR_FD_OFFSET, {
+    ctu_can_fd_timing.sjw_fd,
+    ctu_can_fd_timing.baud_r_presc_fd,
+    1'b0,
+    ctu_can_fd_timing.phase_seg_2_fd,
+    1'b0,
+    ctu_can_fd_timing.phase_seg_1_fd,
+    1'b0,
+    ctu_can_fd_timing.prop_seg_fd
+  });
 end
 endtask
 
@@ -298,15 +366,45 @@ begin
   // Baud Rate -> 500Kbit/s
   // Baud Rate FD -> 2Mbit/s
 
-  write_CAN_FD_Tolerant_Register(8'd6, 8'hC4);
-  write_CAN_FD_Tolerant_Register(8'd25, 8'hC4);
-  write_CAN_FD_Tolerant_Register(8'd7, 8'h3e);
-  write_CAN_FD_Tolerant_Register(8'd26, 8'h02);
+  write_CAN_FD_Tolerant_Register(8'd6, {
+    can_fd_tolerant_timing.triple_sampling,
+    can_fd_tolerant_timing.sjw,
+    can_fd_tolerant_timing.baud_r_presc,
+    can_fd_tolerant_timing.phase_seg_2,
+    can_fd_tolerant_timing.phase_seg_1,
+    can_fd_tolerant_timing.prop_seg
+  });
+  write_CAN_FD_Tolerant_Register(8'd7, {
+    can_fd_tolerant_timing.triple_sampling_fd,
+    can_fd_tolerant_timing.sjw_fd,
+    can_fd_tolerant_timing.baud_r_presc_fd,
+    1'b0,
+    can_fd_tolerant_timing.phase_seg_2_fd,
+    1'b0,
+    can_fd_tolerant_timing.phase_seg_1_fd,
+    1'b0,
+    can_fd_tolerant_timing.prop_seg_fd
+  });
 
-  write_CAN_FD_Receiver_Register(8'd6, 8'hC4);
-  write_CAN_FD_Receiver_Register(8'd25, 8'hC4);
-  write_CAN_FD_Receiver_Register(8'd7, 8'h3e);
-  write_CAN_FD_Receiver_Register(8'd26, 8'h02);
+  write_CAN_FD_Receiver_Register(8'd6, {
+    can_fd_receiver_timing.triple_sampling,
+    can_fd_receiver_timing.sjw,
+    can_fd_receiver_timing.baud_r_presc,
+    can_fd_receiver_timing.phase_seg_2,
+    can_fd_receiver_timing.phase_seg_1,
+    can_fd_receiver_timing.prop_seg
+  });
+  write_CAN_FD_Receiver_Register(8'd7, {
+    can_fd_receiver_timing.triple_sampling_fd,
+    can_fd_receiver_timing.sjw_fd,
+    can_fd_receiver_timing.baud_r_presc_fd,
+    1'b0,
+    can_fd_receiver_timing.phase_seg_2_fd,
+    1'b0,
+    can_fd_receiver_timing.phase_seg_1_fd,
+    1'b0,
+    can_fd_receiver_timing.prop_seg_fd
+  });
 
 end
 endtask

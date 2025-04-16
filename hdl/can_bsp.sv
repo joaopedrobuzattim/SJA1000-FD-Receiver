@@ -324,7 +324,7 @@ module can_bsp
   input  wire        hard_sync,
 
   input  wire  [7:0] addr, // FIFO read address only
-  input  wire  [7:0] data_in, // input data for FIFO and error count settings (looks magical :/)
+  input  wire  [31:0] data_in, // input data for FIFO and error count settings (looks magical :/)
   output wire  [7:0] data_out, // from FIFO only
   input  wire        fifo_selected, // only forwarded
 
@@ -2319,7 +2319,7 @@ begin
   if (rst)
     rx_err_cnt <= 9'h0;
   else if (we_rx_err_cnt & (~node_bus_off))
-    rx_err_cnt <= {1'b0, data_in};
+    rx_err_cnt <= {1'b0, data_in[7:0]};
   else if (set_reset_mode)
     rx_err_cnt <= 9'h0;
   else
@@ -2353,7 +2353,7 @@ begin
   if (rst)
     tx_err_cnt <= 9'h0;
   else if (we_tx_err_cnt)
-    tx_err_cnt <= {1'b0, data_in};
+    tx_err_cnt <= {1'b0, data_in[7:0]};
   else
     begin
       if (set_reset_mode)
@@ -2392,9 +2392,9 @@ always @ (posedge clk or posedge rst)
 begin
   if (rst)
     node_bus_off <= 1'b0;
-  else if ((rx_err_cnt == 9'h0) & (tx_err_cnt == 9'd0) & (~reset_mode) | (we_tx_err_cnt & (data_in < 8'd255)))
+  else if ((rx_err_cnt == 9'h0) & (tx_err_cnt == 9'd0) & (~reset_mode) | (we_tx_err_cnt & (data_in[7:0] < 8'd255)))
     node_bus_off <= 1'b0;
-  else if ((tx_err_cnt >= 9'd256) | (we_tx_err_cnt & (data_in == 8'd255)))
+  else if ((tx_err_cnt >= 9'd256) | (we_tx_err_cnt & (data_in[7:0] == 8'd255)))
     node_bus_off <= 1'b1;
 end
 
