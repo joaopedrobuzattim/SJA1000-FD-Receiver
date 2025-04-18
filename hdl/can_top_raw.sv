@@ -252,7 +252,7 @@ wire en_FD_iso;
 
 reg          data_out_fifo_selected;
 
-wire   [7:0] data_out_fifo;
+wire  [31:0] data_out_fifo;
 wire   [7:0] data_out_regs;
 
 
@@ -782,7 +782,7 @@ begin
   if (cs & re)
     begin
       if(data_out_fifo_selected) begin
-        reg_data_out <= {24'b0, data_out_fifo};
+        reg_data_out <= data_out_fifo;
       end else begin
         reg_data_out <= {24'b0,data_out_regs};
       end

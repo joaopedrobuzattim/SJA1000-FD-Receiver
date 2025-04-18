@@ -871,8 +871,8 @@ assign receive_irq_en_ext           = irq_en_ext[0];
 // Reading data from 8-bit registers 
 always @ (*)
 begin
-  case({extended_mode, addr_read[4:0]})  // synthesis parallel_case
-    {1'h1, 5'd00} :  data_out = {4'b0000, mode_ext[3:1], mode};      // extended mode
+  case({extended_mode, addr_read[4:0]})                                 // synthesis parallel_case
+    {1'h1, 5'd00} :  data_out = {4'b0000, mode_ext[3:1], mode};         // extended mode
     {1'h1, 5'd01} :  data_out = 8'h0;                                   // extended mode
     {1'h1, 5'd02} :  data_out = status;                                 // extended mode
     {1'h1, 5'd03} :  data_out = irq_reg;                                // extended mode
@@ -918,6 +918,27 @@ begin
     default :  data_out = 8'h0;                                   // the rest is read as 0
   endcase
 end
+
+
+  // ADDR_COMMAND        : cfg_data_o = {{32-$size(r_command){1'b0}},     r_command};
+  // ADDR_CONTROL        : cfg_data_o = {{32-$size(r_control){1'b0}},     r_control};
+  // ADDR_CHANNEL        : cfg_data_o = {{32-$size(r_channel){1'b0}},     r_channel};
+  // ADDR_INTR_MASK      : cfg_data_o = {{32-$size(r_intr_mask){1'b0}},   r_intr_mask};
+  // ADDR_INTR_STATUS    : cfg_data_o = {{32-$size(r_intr_status){1'b0}}, r_intr_status};
+  // ADDR_STATUS         : cfg_data_o = {{32-$size(status_signal){1'b0}}, status_signal};
+  // ADDR_DATA           :
+  // begin
+  //   cfg_data_o       = {{32-$size(fifo_output){1'b0}}, fifo_output};
+  //   fifo_valid_clear = cfg_valid_i; //discard data only if the controller says so at cfg_valid_i port
+  // end
+  // ADDR_SAMPLE_TIME    : cfg_data_o = {{32-$size(r_sample_time){1'b0}},  r_sample_time};
+  // ADDR_SAMPLE_COUNT   : cfg_data_o = {6'b0, r_sample_count_rem, 6'b0,   r_sample_count};
+  // ADDR_COMPARE_MASK   : cfg_data_o = {{32-$size(r_compare_mask){1'b0}}, r_compare_mask};
+  // ADDR_COMPARE_STATUS : cfg_data_o = {{32-$size(r_compare_mask){1'b0}}, r_compare_status};
+  // ADDR_COMPARE_D0     : cfg_data_o = {{32-$size(r_compare_d0){1'b0}},   r_compare_d0};
+  // ADDR_COMPARE_D1     : cfg_data_o = {{32-$size(r_compare_d1){1'b0}},   r_compare_d1};
+  // ADDR_OFFSET         : cfg_data_o = {{32-$size(r_offset){1'b0}},       r_offset};
+  // ADDR_OFFSET_CTRL    : cfg_data_o = {{32-$size(r_offset_ctrl){1'b0}},  r_offset_ctrl};
 
 // ############################################################
 // ||                                                        ||
