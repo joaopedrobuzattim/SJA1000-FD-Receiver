@@ -171,20 +171,20 @@ module can_fifo
 input         clk;
 input         rst;
 input         wr;
-input   [7:0] data_in;
+input  [31:0] data_in;
 input   [5:0] addr;
 input         reset_mode;
 input         release_buffer;
 input         extended_mode;
 input         fifo_selected;
 
-output  [7:0] data_out;
+output [31:0] data_out;
 output        overrun;
 output        info_empty;
 output  [6:0] info_cnt;
 
 
-reg     [7:0] fifo [0:63];
+reg    [31:0] fifo [0:63];
 reg     [3:0] length_fifo[0:63];
 reg           overrun_info[0:63];
 reg     [5:0] rd_pointer;
