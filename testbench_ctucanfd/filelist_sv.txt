@@ -12,8 +12,6 @@ can_defines.sv
 ../hdl/can_register_asyn.sv
 ../hdl/can_registers.sv
 ../hdl/can_tx_buffer.sv
-../hdl/can_register_syn.sv
-../hdl/can_register.sv
 ../hdl/can_dlc_decoder.sv
 ../hdl/can_protocol_fsm_control.sv
 
