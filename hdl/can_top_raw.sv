@@ -215,18 +215,13 @@ module can_top_raw
 ( 
   // Register Configuration Ports
   // all reg_* ports are in clk_i clock domain
-  input  wire        reg_rst_i,
-  input  wire        reg_re_i,
-  input  wire        reg_we_i,
-  input  wire [7:0]  reg_addr_read_i,
-  input  wire [7:0]  reg_addr_write_i,
+  input  wire         reg_rst_i,
+  input  wire         reg_re_i,
+  input  wire         reg_we_i,
+  input  wire [7:0]   reg_addr_read_i,
+  input  wire [7:0]   reg_addr_write_i,
   input  wire [31:0]  reg_data_in,
   output reg  [31:0]  reg_data_out,
-
-  // Transmission Buffer Ports
-  input               tx_we_i,
-  input         [3:0] tx_addr_i,
-  input         [7:0] tx_data_i,
 
   input  wire         clk_i,
   input  wire         rx_i,
@@ -537,9 +532,9 @@ can_tx_buffer i_can_tx_buffer
   .clk(clk_i),
   .rst(rst),
 
-  .we(tx_we_i),
-  .addr(tx_addr_i),
-  .data_in(tx_data_i),
+  .we(reg_we_i),
+  .addr(reg_addr_write_i),
+  .data_in(reg_data_in),
 
   /* Operation Mode Register*/
   .extended_mode(extended_mode),

@@ -23,9 +23,6 @@ struct {
   logic tx_o;
   logic bus_off_on;
   logic irqn;
-  logic tx_we_i;
-  logic [3:0] tx_addr_i;
-  logic [7:0] tx_data_i;
 } t_can_fd_tolerant;
 
 struct { 
@@ -39,9 +36,6 @@ struct {
   logic tx_o;
   logic bus_off_on;
   logic irqn;
-  logic tx_we_i;
-  logic [3:0] tx_addr_i;
-  logic [7:0] tx_data_i;
 } t_can_fd_receiver;
 
 // Sinais para conectar as portas de CTU CAN FD
@@ -80,9 +74,6 @@ can_top_raw i_can_top_1
   .reg_data_out(t_can_fd_tolerant.can_reg_data_out),
   .reg_addr_read_i(t_can_fd_tolerant.reg_addr_read),
   .reg_addr_write_i(t_can_fd_tolerant.reg_addr_write),
-  .tx_we_i(t_can_fd_tolerant.tx_we_i),
-  .tx_addr_i(t_can_fd_tolerant.tx_addr_i),
-  .tx_data_i(t_can_fd_tolerant.tx_data_i),
   .reg_rst_i(~reg_rst),
   .clk_i(clk),
   .rx_i(can_bus_short_rx),
@@ -100,9 +91,6 @@ can_top_raw i_can_top_2
   .reg_data_out(t_can_fd_receiver.can_reg_data_out),
   .reg_addr_read_i(t_can_fd_receiver.reg_addr_read),
   .reg_addr_write_i(t_can_fd_receiver.reg_addr_write),
-  .tx_we_i(t_can_fd_receiver.tx_we_i),
-  .tx_addr_i(t_can_fd_receiver.tx_addr_i),
-  .tx_data_i(t_can_fd_receiver.tx_data_i),
   .reg_rst_i(~reg_rst),
   .clk_i(clk),
   .rx_i(can_bus_short_rx),
@@ -284,48 +272,6 @@ task write_CAN_FD_Receiver_Register;
     t_can_fd_receiver.reg_we = 1'b0;
     t_can_fd_receiver.reg_addr_write = 'hx;
     t_can_fd_receiver.reg_data_in = 'hx;
-  end
-endtask
-
-// Description: On this task, wr on TX Buffer of CAN FD Tolerant is performed
-task write_CAN_FD_Tolerant_TX_Buffer;
-  input [3:0] tx_addr;
-  input [7:0] tx_data;
-
-  begin
-    $display("----------------------------------------\n");
-    $display("(%0t) Writing on CAN FD Tolerant TX Buffer [%0d] with 0x%0x", $time, tx_addr, tx_data);
-    $display("----------------------------------------\n");
-    @ (posedge clk);
-    t_can_fd_tolerant.tx_we_i = 1'b1;
-    t_can_fd_tolerant.tx_addr_i = tx_addr;
-    t_can_fd_tolerant.tx_data_i = tx_data;
-    @ (posedge clk);
-    @ (negedge clk);
-    t_can_fd_tolerant.tx_we_i = 1'b0;
-    t_can_fd_tolerant.tx_addr_i = 'hx;
-    t_can_fd_tolerant.tx_data_i = 'hx;
-  end
-endtask
-
-// Description: On this task, wr on TX Buffer of CAN FD Receiver is performed
-task write_CAN_FD_Receiver_TX_Buffer;
-  input [3:0] tx_addr;
-  input [7:0] tx_data;
-
-  begin
-    $display("----------------------------------------\n");
-    $display("(%0t) Writing on CAN FD Receiver TX Buffer [%0d] with 0x%0x", $time, tx_addr, tx_data);
-    $display("----------------------------------------\n");
-    @ (posedge clk);
-    t_can_fd_receiver.tx_we_i = 1'b1;
-    t_can_fd_receiver.tx_addr_i = tx_addr;
-    t_can_fd_receiver.tx_data_i = tx_data;
-    @ (posedge clk);
-    @ (negedge clk);
-    t_can_fd_receiver.tx_we_i = 1'b0;
-    t_can_fd_receiver.tx_addr_i = 'hx;
-    t_can_fd_receiver.tx_data_i = 'hx;
   end
 endtask
 
