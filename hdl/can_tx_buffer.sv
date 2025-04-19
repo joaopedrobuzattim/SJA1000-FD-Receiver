@@ -49,8 +49,8 @@ module can_tx_buffer
 input         clk;
 input         rst;
 input         we;
-input   [3:0] addr;
-input   [7:0] data_in;
+input   [7:0] addr;
+input  [31:0] data_in;
 
 input         transmit_buffer_status;
 
@@ -75,19 +75,19 @@ output  [7:0] tx_data_12;
 /* End: Tx data registers */
 
 /* This section is for BASIC and EXTENDED mode */
-wire we_tx_data_0               = we & (~reset_mode) & ((~extended_mode) & (addr == 8'd0) | extended_mode & (addr == 8'd0)) & transmit_buffer_status;
-wire we_tx_data_1               = we & (~reset_mode) & ((~extended_mode) & (addr == 8'd1) | extended_mode & (addr == 8'd1)) & transmit_buffer_status;
-wire we_tx_data_2               = we & (~reset_mode) & ((~extended_mode) & (addr == 8'd2) | extended_mode & (addr == 8'd2)) & transmit_buffer_status;
-wire we_tx_data_3               = we & (~reset_mode) & ((~extended_mode) & (addr == 8'd3) | extended_mode & (addr == 8'd3)) & transmit_buffer_status;
-wire we_tx_data_4               = we & (~reset_mode) & ((~extended_mode) & (addr == 8'd4) | extended_mode & (addr == 8'd4)) & transmit_buffer_status;
-wire we_tx_data_5               = we & (~reset_mode) & ((~extended_mode) & (addr == 8'd5) | extended_mode & (addr == 8'd5)) & transmit_buffer_status;
-wire we_tx_data_6               = we & (~reset_mode) & ((~extended_mode) & (addr == 8'd6) | extended_mode & (addr == 8'd6)) & transmit_buffer_status;
-wire we_tx_data_7               = we & (~reset_mode) & ((~extended_mode) & (addr == 8'd7) | extended_mode & (addr == 8'd7)) & transmit_buffer_status;
-wire we_tx_data_8               = we & (~reset_mode) & ((~extended_mode) & (addr == 8'd8) | extended_mode & (addr == 8'd8)) & transmit_buffer_status;
-wire we_tx_data_9               = we & (~reset_mode) & ((~extended_mode) & (addr == 8'd9) | extended_mode & (addr == 8'd9)) & transmit_buffer_status;
-wire we_tx_data_10              = we & (~reset_mode) & (                                     extended_mode & (addr == 8'd10)) & transmit_buffer_status;
-wire we_tx_data_11              = we & (~reset_mode) & (                                     extended_mode & (addr == 8'd11)) & transmit_buffer_status;
-wire we_tx_data_12              = we & (~reset_mode) & (                                     extended_mode & (addr == 8'd12)) & transmit_buffer_status;
+wire we_tx_data_0               = we & (~reset_mode) & ((~extended_mode) & (addr == 8'd10) | extended_mode & (addr == 8'd16)) & transmit_buffer_status;
+wire we_tx_data_1               = we & (~reset_mode) & ((~extended_mode) & (addr == 8'd11) | extended_mode & (addr == 8'd17)) & transmit_buffer_status;
+wire we_tx_data_2               = we & (~reset_mode) & ((~extended_mode) & (addr == 8'd12) | extended_mode & (addr == 8'd18)) & transmit_buffer_status;
+wire we_tx_data_3               = we & (~reset_mode) & ((~extended_mode) & (addr == 8'd13) | extended_mode & (addr == 8'd19)) & transmit_buffer_status;
+wire we_tx_data_4               = we & (~reset_mode) & ((~extended_mode) & (addr == 8'd14) | extended_mode & (addr == 8'd20)) & transmit_buffer_status;
+wire we_tx_data_5               = we & (~reset_mode) & ((~extended_mode) & (addr == 8'd15) | extended_mode & (addr == 8'd21)) & transmit_buffer_status;
+wire we_tx_data_6               = we & (~reset_mode) & ((~extended_mode) & (addr == 8'd16) | extended_mode & (addr == 8'd22)) & transmit_buffer_status;
+wire we_tx_data_7               = we & (~reset_mode) & ((~extended_mode) & (addr == 8'd17) | extended_mode & (addr == 8'd23)) & transmit_buffer_status;
+wire we_tx_data_8               = we & (~reset_mode) & ((~extended_mode) & (addr == 8'd18) | extended_mode & (addr == 8'd24)) & transmit_buffer_status;
+wire we_tx_data_9               = we & (~reset_mode) & ((~extended_mode) & (addr == 8'd19) | extended_mode & (addr == 8'd25)) & transmit_buffer_status;
+wire we_tx_data_10              = we & (~reset_mode) & (                                     extended_mode & (addr == 8'd26)) & transmit_buffer_status;
+wire we_tx_data_11              = we & (~reset_mode) & (                                     extended_mode & (addr == 8'd27)) & transmit_buffer_status;
+wire we_tx_data_12              = we & (~reset_mode) & (                                     extended_mode & (addr == 8'd28)) & transmit_buffer_status;
 /* End: This section is for BASIC and EXTENDED mode */
 
 
@@ -95,7 +95,7 @@ wire we_tx_data_12              = we & (~reset_mode) & (                        
 
 /* Tx data 0 register. */
 can_register_asyn #(8) TX_DATA_REG0
-( .data_in(data_in),
+( .data_in(data_in[7:0]),
   .data_out(tx_data_0),
   .we(we_tx_data_0),
   .clk(clk),
@@ -106,7 +106,7 @@ can_register_asyn #(8) TX_DATA_REG0
 
 /* Tx data 1 register. */
 can_register_asyn #(8) TX_DATA_REG1
-( .data_in(data_in),
+( .data_in(data_in[7:0]),
   .data_out(tx_data_1),
   .we(we_tx_data_1),
   .clk(clk),
@@ -117,7 +117,7 @@ can_register_asyn #(8) TX_DATA_REG1
 
 /* Tx data 2 register. */
 can_register_asyn #(8) TX_DATA_REG2
-( .data_in(data_in),
+( .data_in(data_in[7:0]),
   .data_out(tx_data_2),
   .we(we_tx_data_2),
   .clk(clk),
@@ -128,7 +128,7 @@ can_register_asyn #(8) TX_DATA_REG2
 
 /* Tx data 3 register. */
 can_register_asyn #(8) TX_DATA_REG3
-( .data_in(data_in),
+( .data_in(data_in[7:0]),
   .data_out(tx_data_3),
   .we(we_tx_data_3),
   .clk(clk),
@@ -139,7 +139,7 @@ can_register_asyn #(8) TX_DATA_REG3
 
 /* Tx data 4 register. */
 can_register_asyn #(8) TX_DATA_REG4
-( .data_in(data_in),
+( .data_in(data_in[7:0]),
   .data_out(tx_data_4),
   .we(we_tx_data_4),
   .clk(clk),
@@ -150,7 +150,7 @@ can_register_asyn #(8) TX_DATA_REG4
 
 /* Tx data 5 register. */
 can_register_asyn #(8) TX_DATA_REG5
-( .data_in(data_in),
+( .data_in(data_in[7:0]),
   .data_out(tx_data_5),
   .we(we_tx_data_5),
   .clk(clk),
@@ -161,7 +161,7 @@ can_register_asyn #(8) TX_DATA_REG5
 
 /* Tx data 6 register. */
 can_register_asyn #(8) TX_DATA_REG6
-( .data_in(data_in),
+( .data_in(data_in[7:0]),
   .data_out(tx_data_6),
   .we(we_tx_data_6),
   .clk(clk),
@@ -172,7 +172,7 @@ can_register_asyn #(8) TX_DATA_REG6
 
 /* Tx data 7 register. */
 can_register_asyn #(8) TX_DATA_REG7
-( .data_in(data_in),
+( .data_in(data_in[7:0]),
   .data_out(tx_data_7),
   .we(we_tx_data_7),
   .clk(clk),
@@ -183,7 +183,7 @@ can_register_asyn #(8) TX_DATA_REG7
 
 /* Tx data 8 register. */
 can_register_asyn #(8) TX_DATA_REG8
-( .data_in(data_in),
+( .data_in(data_in[7:0]),
   .data_out(tx_data_8),
   .we(we_tx_data_8),
   .clk(clk),
@@ -194,7 +194,7 @@ can_register_asyn #(8) TX_DATA_REG8
 
 /* Tx data 9 register. */
 can_register_asyn #(8) TX_DATA_REG9
-( .data_in(data_in),
+( .data_in(data_in[7:0]),
   .data_out(tx_data_9),
   .we(we_tx_data_9),
   .clk(clk),
@@ -205,7 +205,7 @@ can_register_asyn #(8) TX_DATA_REG9
 
 /* Tx data 10 register. */
 can_register_asyn #(8) TX_DATA_REG10
-( .data_in(data_in),
+( .data_in(data_in[7:0]),
   .data_out(tx_data_10),
   .we(we_tx_data_10),
   .clk(clk),
@@ -216,7 +216,7 @@ can_register_asyn #(8) TX_DATA_REG10
 
 /* Tx data 11 register. */
 can_register_asyn #(8) TX_DATA_REG11
-( .data_in(data_in),
+( .data_in(data_in[7:0]),
   .data_out(tx_data_11),
   .we(we_tx_data_11),
   .clk(clk),
@@ -227,7 +227,7 @@ can_register_asyn #(8) TX_DATA_REG11
 
 /* Tx data 12 register. */
 can_register_asyn #(8) TX_DATA_REG12
-( .data_in(data_in),
+( .data_in(data_in[7:0]),
   .data_out(tx_data_12),
   .we(we_tx_data_12),
   .clk(clk),

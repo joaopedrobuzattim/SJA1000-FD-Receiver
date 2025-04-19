@@ -388,32 +388,32 @@ begin
 
 
 // TX Buffer - SJA1000 
-write_CAN_FD_Tolerant_TX_Buffer(4'h00, 8'h88);
-write_CAN_FD_Tolerant_TX_Buffer(4'h01, 8'hA6);
-write_CAN_FD_Tolerant_TX_Buffer(4'h02, 8'h00);
-write_CAN_FD_Tolerant_TX_Buffer(4'h03, 8'h5A);
-write_CAN_FD_Tolerant_TX_Buffer(4'h04, 8'hA8);
-write_CAN_FD_Tolerant_TX_Buffer(4'h05, 8'hFF);
-write_CAN_FD_Tolerant_TX_Buffer(4'h06, 8'hFF);
-write_CAN_FD_Tolerant_TX_Buffer(4'h07, 8'hBC);
-write_CAN_FD_Tolerant_TX_Buffer(4'h08, 8'hDE);
-write_CAN_FD_Tolerant_TX_Buffer(4'h09, 8'hF0);
-write_CAN_FD_Tolerant_TX_Buffer(4'h0A, 8'h0F);
-write_CAN_FD_Tolerant_TX_Buffer(4'h0B, 8'hED);
-write_CAN_FD_Tolerant_TX_Buffer(4'h0C, 8'hCB);
-write_CAN_FD_Receiver_TX_Buffer(4'h00, 8'h88);
-write_CAN_FD_Receiver_TX_Buffer(4'h01, 8'hA6);
-write_CAN_FD_Receiver_TX_Buffer(4'h02, 8'h00);
-write_CAN_FD_Receiver_TX_Buffer(4'h03, 8'h5A);
-write_CAN_FD_Receiver_TX_Buffer(4'h04, 8'hA8);
-write_CAN_FD_Receiver_TX_Buffer(4'h05, 8'hFF);
-write_CAN_FD_Receiver_TX_Buffer(4'h06, 8'hFF);
-write_CAN_FD_Receiver_TX_Buffer(4'h07, 8'hBC);
-write_CAN_FD_Receiver_TX_Buffer(4'h08, 8'hDE);
-write_CAN_FD_Receiver_TX_Buffer(4'h09, 8'hF0);
-write_CAN_FD_Receiver_TX_Buffer(4'h0A, 8'h0F);
-write_CAN_FD_Receiver_TX_Buffer(4'h0B, 8'hED);
-write_CAN_FD_Receiver_TX_Buffer(4'h0C, 8'hCB);  
+write_CAN_FD_Tolerant_Register(8'h10, 8'h88);
+write_CAN_FD_Tolerant_Register(8'h11, 8'hA6);
+write_CAN_FD_Tolerant_Register(8'h12, 8'h00);
+write_CAN_FD_Tolerant_Register(8'h13, 8'h5A);
+write_CAN_FD_Tolerant_Register(8'h14, 8'hA8);
+write_CAN_FD_Tolerant_Register(8'h15, 8'hFF);
+write_CAN_FD_Tolerant_Register(8'h16, 8'hFF);
+write_CAN_FD_Tolerant_Register(8'h17, 8'hBC);
+write_CAN_FD_Tolerant_Register(8'h18, 8'hDE);
+write_CAN_FD_Tolerant_Register(8'h19, 8'hF0);
+write_CAN_FD_Tolerant_Register(8'h1A, 8'h0F);
+write_CAN_FD_Tolerant_Register(8'h1B, 8'hED);
+write_CAN_FD_Tolerant_Register(8'h1C, 8'hCB);
+write_CAN_FD_Receiver_Register(8'h10, 8'h88);
+write_CAN_FD_Receiver_Register(8'h11, 8'hA6);
+write_CAN_FD_Receiver_Register(8'h12, 8'h00);
+write_CAN_FD_Receiver_Register(8'h13, 8'h5A);
+write_CAN_FD_Receiver_Register(8'h14, 8'hA8);
+write_CAN_FD_Receiver_Register(8'h15, 8'hFF);
+write_CAN_FD_Receiver_Register(8'h16, 8'hFF);
+write_CAN_FD_Receiver_Register(8'h17, 8'hBC);
+write_CAN_FD_Receiver_Register(8'h18, 8'hDE);
+write_CAN_FD_Receiver_Register(8'h19, 8'hF0);
+write_CAN_FD_Receiver_Register(8'h1A, 8'h0F);
+write_CAN_FD_Receiver_Register(8'h1B, 8'hED);
+write_CAN_FD_Receiver_Register(8'h1C, 8'hCB);  
   
 // FD Receiver TX Command - SJA1000
 write_CAN_FD_Receiver_Register(REG_CMR, 8'h01);
@@ -528,19 +528,19 @@ while (1) begin
   
 //$display("(%0t) Writing on CAN FD Receiver TX Buffer [%0x]\n",$time ,t_can_fd_tolerant.can_reg_data_out);
 // TX Buffer - SJA1000 
-write_CAN_FD_Tolerant_TX_Buffer(4'h00, 8'h88);
-write_CAN_FD_Tolerant_TX_Buffer(4'h01, 8'hA6);
-write_CAN_FD_Tolerant_TX_Buffer(4'h02, 8'h00);
-write_CAN_FD_Tolerant_TX_Buffer(4'h03, 8'h5A);
-write_CAN_FD_Tolerant_TX_Buffer(4'h04, 8'hA8);
-write_CAN_FD_Tolerant_TX_Buffer(4'h05, 8'hFF);
-write_CAN_FD_Tolerant_TX_Buffer(4'h06, 8'hFF);
-write_CAN_FD_Tolerant_TX_Buffer(4'h07, 8'hBC);
-write_CAN_FD_Tolerant_TX_Buffer(4'h08, 8'hDE);
-write_CAN_FD_Tolerant_TX_Buffer(4'h09, 8'hF0);
-write_CAN_FD_Tolerant_TX_Buffer(4'h0A, 8'h0F);
-write_CAN_FD_Tolerant_TX_Buffer(4'h0B, 8'hED);
-write_CAN_FD_Tolerant_TX_Buffer(4'h0C, 8'hCB);
+write_CAN_FD_Tolerant_Register(8'h10, 8'h88);
+write_CAN_FD_Tolerant_Register(8'h11, 8'hA6);
+write_CAN_FD_Tolerant_Register(8'h12, 8'h00);
+write_CAN_FD_Tolerant_Register(8'h13, 8'h5A);
+write_CAN_FD_Tolerant_Register(8'h14, 8'hA8);
+write_CAN_FD_Tolerant_Register(8'h15, 8'hFF);
+write_CAN_FD_Tolerant_Register(8'h16, 8'hFF);
+write_CAN_FD_Tolerant_Register(8'h17, 8'hBC);
+write_CAN_FD_Tolerant_Register(8'h18, 8'hDE);
+write_CAN_FD_Tolerant_Register(8'h19, 8'hF0);
+write_CAN_FD_Tolerant_Register(8'h1A, 8'h0F);
+write_CAN_FD_Tolerant_Register(8'h1B, 8'hED);
+write_CAN_FD_Tolerant_Register(8'h1C, 8'hCB);
 
 write_CAN_FD_Tolerant_Register(REG_CMR, 8'h01);
 
