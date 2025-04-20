@@ -5,7 +5,7 @@
 ////  Utilizado para decodificar o Data Lenght Code em frames FD  ////
 //////////////////////////////////////////////////////////////////////
 
-`include "timescale.sv"
+
 
 
 module can_dlc_decoder(

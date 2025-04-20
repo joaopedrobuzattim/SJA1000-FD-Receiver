@@ -1,4 +1,4 @@
-`include "timescale.sv"
+
 
 module can_crc_destuff(clk, rst, data, data_prev, enable, bit_cnt, fixed_stuff_bit_error, crc_17_o, crc_21_o);
 

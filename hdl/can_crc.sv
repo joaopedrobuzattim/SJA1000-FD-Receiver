@@ -69,10 +69,10 @@
 //
 
 // synopsys translate_off
-`include "timescale.sv"
+
 // synopsys translate_on
 
-module can_crc (clk, data, stuff_bit, enable, initialize, FD_iso, crc_15, crc_17, crc_21);
+module can_crc (clk, rst, data, stuff_bit, enable, initialize, FD_iso, crc_15, crc_17, crc_21);
 
 
 parameter CRC15_POL = 16'hC599;
@@ -80,6 +80,7 @@ parameter CRC17_POL = 20'h3685B;
 parameter CRC21_POL = 24'h302899;
 
 input         clk;
+input         rst;
 input         data;
 input         stuff_bit;
 input         enable;
@@ -116,9 +117,14 @@ assign crc_21_next = data ^ crc_21[20];
 assign crc_21_tmp = crc_21<<1;
 assign crc_21 = crc_21_r;
 
-always @ (posedge clk)
+always @ (posedge clk or posedge rst)
 begin
-  if(initialize & ~FD_iso) begin
+  if (rst) begin
+    crc_15_r <=  15'h0;
+    crc_17_r <=  17'h0;
+    crc_21_r <=  21'h0;
+  end
+  else if(initialize & ~FD_iso) begin
     crc_15_r <=  15'h0;
     crc_17_r <=  17'h0;
     crc_21_r <=  21'h0;

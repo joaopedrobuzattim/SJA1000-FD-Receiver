@@ -1,4 +1,4 @@
-`include "timescale.sv"
+
 `include "can_defines.sv"
 `include "can_testbench_defines.sv"
 

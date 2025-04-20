@@ -13,6 +13,8 @@ testbench_ctucanfd/CTU_CAN_FD_RTL/*
 testbench_ctucanfd/WORKLIB_SV/*
 !testbench_ctucanfd/WORKLIB_SV/.gitkeep
 
+synthesis/*
+testbench_after_syn/*
 
 # ICARUS + GTK
 *.vcd
