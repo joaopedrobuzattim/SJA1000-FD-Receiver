@@ -148,7 +148,7 @@
 //
 
 // synopsys translate_off
-`include "timescale.sv"
+
 // synopsys translate_on
 `include "can_defines.sv"
 

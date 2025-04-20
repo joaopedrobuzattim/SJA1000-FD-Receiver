@@ -166,7 +166,7 @@
 //
 
 // synopsys translate_off
-`include "timescale.sv"
+
 // synopsys translate_on
 `include "can_defines.sv"
 
@@ -482,6 +482,20 @@ always_ff @( posedge clk, posedge rst ) begin
     acceptance_mask_2   <= 'h0;
     acceptance_mask_3   <= 'h0;
     fd_control_register <= 'h0;
+    prop_seg            <= 'h0;
+    phase_seg_1         <= 'h0;
+    phase_seg_2         <= 'h0;
+    baud_r_presc        <= 'h0;
+    sjw                 <= 'h0;
+    triple_sampling     <= 'h0;
+    prop_seg_fd         <= 'h0;
+    phase_seg_1_fd      <= 'h0;
+    phase_seg_2_fd      <= 'h0;
+    baud_r_presc_fd     <= 'h0;
+    sjw_fd              <= 'h0;
+    triple_sampling_fd  <= 'h0;
+    
+
 
   end else begin
     if(we) begin

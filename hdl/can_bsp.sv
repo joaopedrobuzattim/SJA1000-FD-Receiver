@@ -229,7 +229,7 @@
 //
 
 // synopsys translate_off
-`include "timescale.sv"
+
 // synopsys translate_on
 `include "can_defines.sv"
 
@@ -292,7 +292,6 @@ module can_fd_detect (
   // Set on 1-to-0 transition in FD mode (on fast clock), reset on sample_point
   output reg  fall_edge_lstbtm_ro
 );
-parameter Tp = 1;
 
 always @ (posedge clk or posedge rst)
 begin
@@ -1631,6 +1630,7 @@ end
 can_crc i_can_crc_rx
 (
   .clk(clk),
+  .rst(rst),
   .data(sampled_bit),
   .stuff_bit(bit_de_stuff),
   .FD_iso(en_FD_iso),

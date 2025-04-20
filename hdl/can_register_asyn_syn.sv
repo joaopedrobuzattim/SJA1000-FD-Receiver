@@ -70,7 +70,7 @@
 //
 
 // synopsys translate_off
-`include "timescale.sv"
+
 // synopsys translate_on
 
 
