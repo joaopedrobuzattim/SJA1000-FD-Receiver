@@ -346,63 +346,36 @@ begin
 end
 
 
+// overrun_info
+always @ (posedge clk)
+begin
+  if (write_length_info & (~info_full) | initialize_memories)
+    overrun_info[wr_info_pointer] <= (latch_overrun | (wr & fifo_full)) & (~initialize_memories);
+end
 
 
-  // overrun_info
-  always @ (posedge clk)
-  begin
-    if (write_length_info & (~info_full) | initialize_memories)
-      overrun_info[wr_info_pointer] <= (latch_overrun | (wr & fifo_full)) & (~initialize_memories);
-  end
+// reading overrun
+assign overrun = overrun_info[rd_info_pointer];
+
+// writing data to fifo
+always @ (posedge clk)
+begin
+  if (wr & (~fifo_full))
+    fifo[wr_pointer] <= data_in;
+end
+
+// reading from fifo
+assign data_out = fifo[read_address];
 
 
-  // reading overrun
-  assign overrun = overrun_info[rd_info_pointer];
+// writing length_fifo
+always @ (posedge clk)
+begin
+  if (write_length_info & (~info_full) | initialize_memories)
+    length_fifo[wr_info_pointer] <= len_cnt & {4{~initialize_memories}};
+end
 
 
-  // overrun_info
-  always @ (posedge clk)
-  begin
-    if (write_length_info & (~info_full) | initialize_memories)
-      overrun_info[wr_info_pointer] <= (latch_overrun | (wr & fifo_full)) & (~initialize_memories);
-  end
-
-
-  // reading overrun
-  assign overrun = overrun_info[rd_info_pointer];
-
-  // writing data to fifo
-  always @ (posedge clk)
-  begin
-    if (wr & (~fifo_full))
-      fifo[wr_pointer] <= data_in;
-  end
-
-  // reading from fifo
-  assign data_out = fifo[read_address];
-
-
-  // writing length_fifo
-  always @ (posedge clk)
-  begin
-    if (write_length_info & (~info_full) | initialize_memories)
-      length_fifo[wr_info_pointer] <= len_cnt & {4{~initialize_memories}};
-  end
-
-
-  // reading length_fifo
-  assign length_info = length_fifo[rd_info_pointer];
-
-  // overrun_info
-  always @ (posedge clk)
-  begin
-    if (write_length_info & (~info_full) | initialize_memories)
-      overrun_info[wr_info_pointer] <= (latch_overrun | (wr & fifo_full)) & (~initialize_memories);
-  end
-
-
-  // reading overrun
-  assign overrun = overrun_info[rd_info_pointer];
-
-
+// reading length_fifo
+assign length_info = length_fifo[rd_info_pointer];
 endmodule

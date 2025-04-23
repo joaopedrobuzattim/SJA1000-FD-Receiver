@@ -562,10 +562,6 @@ can_tx_buffer i_can_tx_buffer
   /* End: Tx data registers */
 );
 
-
-assign rx_inter_btl = (~en_FD_rx) ? (rx_inter | fdf_r ): rx_inter;
-assign go_rx_inter_btl = (~en_FD_rx)  ? (go_rx_inter | go_rx_skip_fdf) : go_rx_inter;
-
 /* Connecting can_btl module */
 can_btl i_can_btl
 (

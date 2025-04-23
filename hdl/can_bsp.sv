@@ -1252,9 +1252,9 @@ end
 // ---------------------- FIFO Wr -------------------------------
 logic           data_byte_detected;
 logic     [7:0] tmp_byte_data;
-logic    [31:0] tmp_fifo [0:64];
+logic    [31:0] tmp_fifo [0:15];
 logic    [31:0] tmp_4_byte_data;
-logic     [6:0] byte_cnt;
+logic     [5:0] byte_cnt;
 logic     [5:0] word_cnt;
 logic     [4:0] wr_operations;
 logic     [1:0] byte_in_word_cnt;  // Contador de 0 a 3
@@ -1296,11 +1296,11 @@ end
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
-    byte_cnt <= 7'h0;
+    byte_cnt <= 6'h0;
   else if (data_byte_detected)
     byte_cnt <= byte_cnt + 1'b1;
   else if (sample_point & go_rx_crc_lim)
-    byte_cnt <= 7'h0;
+    byte_cnt <= 6'h0;
 end
 
 always @ (posedge clk)
