@@ -144,7 +144,7 @@
 // synopsys translate_off
 
 // synopsys translate_on
-`include "can_defines.sv"
+
 
 module can_fifo
 (

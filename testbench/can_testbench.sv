@@ -1,7 +1,7 @@
 // synopsys translate_off
 
 // synopsys translate_on
-`include "can_defines.sv"
+
 `include "can_testbench_defines.sv"
 
 module can_testbench();
