@@ -43,7 +43,7 @@ localparam logic [7:0]  REG_ECC               = 8'h0C;
 localparam logic [7:0]  REG_BTR0_FD           = 8'h19;
 localparam logic [7:0]  REG_BTR1_FD           = 8'h1A;
 localparam logic [7:0]  REG_CDR               = 8'h1F;
-logic [7:0] fd_receiver_irq_reg_value;
+
 
 
 // Description: On this task, CTU CAN FD transmists a FD ISO message along the bus 
