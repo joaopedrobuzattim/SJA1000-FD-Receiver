@@ -12,116 +12,68 @@ logic      can_bus_short_rx;
 
 `include "tb_tasks.sv"
 
-struct { 
-  logic reg_we;
-  logic reg_re;
-  logic [31:0] reg_data_in;
-  logic [31:0] can_reg_data_out;
-  logic [7:0] reg_addr_read;
-  logic [7:0] reg_addr_write;
-  logic rx_i;
-  logic tx_o;
-  logic bus_off_on;
-  logic irqn;
-} t_can_fd_tolerant;
+t_sja1000_can_fd can_fd_tolerant, can_fd_receiver;
 
-struct { 
-  logic reg_we;
-  logic reg_re;
-  logic [31:0] reg_data_in;
-  logic [31:0] can_reg_data_out;
-  logic [7:0] reg_addr_read;
-  logic [7:0] reg_addr_write;
-  logic rx_i;
-  logic tx_o;
-  logic bus_off_on;
-  logic irqn;
-} t_can_fd_receiver;
-
-// Sinais para conectar as portas de CTU CAN FD
-
-typedef struct {
-    logic rx_trigger_nbs;    // std_logic -> logic
-    logic rx_trigger_wbs;    // std_logic -> logic
-    logic tx_trigger;        // std_logic -> logic
-} t_ctu_can_fd_test_probe;
-
-
-struct { 
-  logic res_n_out;
-  logic scan_enable;             // std_logic -> logic
-  logic [31:0] write_data;          // std_logic_vector(31 downto 0) -> logic [31:0]
-  logic [31:0] read_data;         // std_logic_vector(31 downto 0) -> logic [31:0]
-  logic [15:0] address;          // std_logic_vector(15 downto 0) -> logic [15:0]
-  logic scs;                     // std_logic -> logic
-  logic srd;                     // std_logic -> logic
-  logic swr;                     // std_logic -> logic
-  logic [3:0] sbe;               // std_logic_vector(3 downto 0) -> logic [3:0]
-  logic inte;                    // std_logic -> logic
-  logic can_tx;                  // std_logic -> logic
-  logic can_rx;                  // std_logic -> logic
-  t_ctu_can_fd_test_probe test_probe;  // Assume t_ctu_can_fd_test_probe is a struct or user-defined type in SystemVerilog
-  logic [63:0] timestamp;        // std_logic_vector(63 downto 0) -> logic [63:0]
-} t_ctu_can_fd;
+t_ctu_can_fd ctu_can_fd;
 
 
 // CAN FD Tolerant
 can_top_raw i_can_top_1
 ( 
-  .reg_we_i(t_can_fd_tolerant.reg_we),
-  .reg_re_i(t_can_fd_tolerant.reg_re),
-  .reg_data_in(t_can_fd_tolerant.reg_data_in),
-  .reg_data_out(t_can_fd_tolerant.can_reg_data_out),
-  .reg_addr_read_i(t_can_fd_tolerant.reg_addr_read),
-  .reg_addr_write_i(t_can_fd_tolerant.reg_addr_write),
+  .reg_we_i(can_fd_tolerant.reg_we),
+  .reg_re_i(can_fd_tolerant.reg_re),
+  .reg_data_in(can_fd_tolerant.reg_data_in),
+  .reg_data_out(can_fd_tolerant.can_reg_data_out),
+  .reg_addr_read_i(can_fd_tolerant.reg_addr_read),
+  .reg_addr_write_i(can_fd_tolerant.reg_addr_write),
   .reg_rst_i(~reg_rst),
   .clk_i(clk),
   .rx_i(can_bus_short_rx),
-  .tx_o(t_can_fd_tolerant.tx_o),
-  .bus_off_on(t_can_fd_tolerant.bus_off_on),
-  .irq_on(t_can_fd_tolerant.irqn)
+  .tx_o(can_fd_tolerant.tx_o),
+  .bus_off_on(can_fd_tolerant.bus_off_on),
+  .irq_on(can_fd_tolerant.irqn)
 );
 
 // CAN FD Receiver
 can_top_raw i_can_top_2
 ( 
-  .reg_we_i(t_can_fd_receiver.reg_we),
-  .reg_re_i(t_can_fd_receiver.reg_re),
-  .reg_data_in(t_can_fd_receiver.reg_data_in),
-  .reg_data_out(t_can_fd_receiver.can_reg_data_out),
-  .reg_addr_read_i(t_can_fd_receiver.reg_addr_read),
-  .reg_addr_write_i(t_can_fd_receiver.reg_addr_write),
+  .reg_we_i(can_fd_receiver.reg_we),
+  .reg_re_i(can_fd_receiver.reg_re),
+  .reg_data_in(can_fd_receiver.reg_data_in),
+  .reg_data_out(can_fd_receiver.can_reg_data_out),
+  .reg_addr_read_i(can_fd_receiver.reg_addr_read),
+  .reg_addr_write_i(can_fd_receiver.reg_addr_write),
   .reg_rst_i(~reg_rst),
   .clk_i(clk),
   .rx_i(can_bus_short_rx),
-  .tx_o(t_can_fd_receiver.tx_o),
-  .bus_off_on(t_can_fd_receiver.bus_off_on),
-  .irq_on(t_can_fd_receiver.irqn)
+  .tx_o(can_fd_receiver.tx_o),
+  .bus_off_on(can_fd_receiver.bus_off_on),
+  .irq_on(can_fd_receiver.irqn)
 );
 
 // Instanciando CTU CAN FD
-can_top_level ctu_can_fd 
+can_top_level i_ctu_can_fd 
 (
   .clk_sys(clk),
   .res_n(reg_rst),
-  .res_n_out(t_ctu_can_fd.res_n_out),
-  .scan_enable(t_ctu_can_fd.scan_enable),
-  .data_in(t_ctu_can_fd.write_data),
-  .data_out(t_ctu_can_fd.read_data),
-  .adress(t_ctu_can_fd.address),
-  .scs(t_ctu_can_fd.scs),
-  .srd(t_ctu_can_fd.srd),
-  .swr(t_ctu_can_fd.swr),
-  .sbe(t_ctu_can_fd.sbe),
-  .\int (t_ctu_can_fd.inte),
-  .can_tx(t_ctu_can_fd.can_tx),
+  .res_n_out(ctu_can_fd.res_n_out),
+  .scan_enable(ctu_can_fd.scan_enable),
+  .data_in(ctu_can_fd.write_data),
+  .data_out(ctu_can_fd.read_data),
+  .adress(ctu_can_fd.address),
+  .scs(ctu_can_fd.scs),
+  .srd(ctu_can_fd.srd),
+  .swr(ctu_can_fd.swr),
+  .sbe(ctu_can_fd.sbe),
+  .\int (ctu_can_fd.inte),
+  .can_tx(ctu_can_fd.can_tx),
   .can_rx(can_bus_short_rx),
-  .test_probe(t_ctu_can_fd.test_probe),
-  .timestamp(t_ctu_can_fd.timestamp)
+  .test_probe(ctu_can_fd.test_probe),
+  .timestamp(ctu_can_fd.timestamp)
 );
 
 // Shorting RX Chanel
-assign can_bus_short_rx = t_can_fd_tolerant.tx_o & t_ctu_can_fd.can_tx & t_can_fd_receiver.tx_o;
+assign can_bus_short_rx = can_fd_tolerant.tx_o & ctu_can_fd.can_tx & can_fd_receiver.tx_o;
 
 
 // Clock de 100MHz
@@ -167,16 +119,16 @@ task write_CTU_CAN_FD_register;
     $display("(%0t) Writing CTU CAN FD register [%0d] (sbe: %0d) with 0x%0x", $time, addr_in, sbe_in, data_in);
     $display("----------------------------------------\n");
     @ (posedge clk);
-    t_ctu_can_fd.scs = 1'b1;
-    t_ctu_can_fd.swr = 1'b1;
-    t_ctu_can_fd.address = addr_in;
-    t_ctu_can_fd.write_data = data_in;
-    t_ctu_can_fd.sbe = sbe_in;
+    ctu_can_fd.scs = 1'b1;
+    ctu_can_fd.swr = 1'b1;
+    ctu_can_fd.address = addr_in;
+    ctu_can_fd.write_data = data_in;
+    ctu_can_fd.sbe = sbe_in;
     @ (posedge clk);
     @ (negedge clk);
-    t_ctu_can_fd.scs = 1'b0;
-    t_ctu_can_fd.swr = 1'b0;
-    t_ctu_can_fd.sbe = 4'b0000;
+    ctu_can_fd.scs = 1'b0;
+    ctu_can_fd.swr = 1'b0;
+    ctu_can_fd.sbe = 4'b0000;
   end
 endtask
 
@@ -190,14 +142,14 @@ task write_CAN_FD_Tolerant_Register;
     $display("(%0t) Writing on CAN FD Tolerant register [%0d] with 0x%0x", $time, reg_addr, reg_data);
     $display("----------------------------------------\n");
     @ (posedge clk);
-    t_can_fd_tolerant.reg_addr_write = reg_addr;
-    t_can_fd_tolerant.reg_data_in = reg_data;
-    t_can_fd_tolerant.reg_we = 1'b1;
+    can_fd_tolerant.reg_addr_write = reg_addr;
+    can_fd_tolerant.reg_data_in = reg_data;
+    can_fd_tolerant.reg_we = 1'b1;
     @ (posedge clk);
     @ (negedge clk);
-    t_can_fd_tolerant.reg_we = 1'b0;
-    t_can_fd_tolerant.reg_addr_write = 'hx;
-    t_can_fd_tolerant.reg_data_in = 'hx;
+    can_fd_tolerant.reg_we = 1'b0;
+    can_fd_tolerant.reg_addr_write = 'hx;
+    can_fd_tolerant.reg_data_in = 'hx;
   end
 endtask
 
@@ -211,14 +163,14 @@ task write_CAN_FD_Receiver_Register;
     $display("(%0t) Writing on CAN FD Receiver register [%0d] with 0x%0x", $time, reg_addr, reg_data);
     $display("----------------------------------------\n");
     @ (posedge clk);
-    t_can_fd_receiver.reg_addr_write = reg_addr;
-    t_can_fd_receiver.reg_data_in = reg_data;
-    t_can_fd_receiver.reg_we = 1'b1;
+    can_fd_receiver.reg_addr_write = reg_addr;
+    can_fd_receiver.reg_data_in = reg_data;
+    can_fd_receiver.reg_we = 1'b1;
     @ (posedge clk);
     @ (negedge clk);
-    t_can_fd_receiver.reg_we = 1'b0;
-    t_can_fd_receiver.reg_addr_write = 'hx;
-    t_can_fd_receiver.reg_data_in = 'hx;
+    can_fd_receiver.reg_we = 1'b0;
+    can_fd_receiver.reg_addr_write = 'hx;
+    can_fd_receiver.reg_data_in = 'hx;
   end
 endtask
 
