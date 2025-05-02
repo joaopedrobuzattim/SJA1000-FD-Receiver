@@ -1,5 +1,6 @@
 .PHONY: run
 run:
+	xrun -clean
 	@ [ -f hdl.var ] || touch hdl.var
 	xmvhdl -log logs/xmvhdl.log  -work ctu_can_fd_rtl -v200x -f filelist_vhd.txt 
 	xmvlog -log logs/xmvlog.log -work worklib_sv -sv -nocopyright -f filelist_sv.txt

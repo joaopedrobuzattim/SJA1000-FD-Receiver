@@ -302,27 +302,27 @@ begin
   write_CTU_CAN_FD_register(4'b0011, CTU_CAN_FD_BASE + TX_COMMAND_OFFSET, 32'b00000000000000000000000100000010);
 
  // Wait for SJA1000 interrupt 
- wait(t_can_fd_receiver.irqn == 1'b0);
+ wait(can_fd_receiver.irqn == 1'b0);
 
  // Reading Bus Error Interrupt - SJA1000
-t_can_fd_receiver.reg_re = 1'b1;
-t_can_fd_receiver.reg_addr_read = 8'd3;
-wait (t_can_fd_receiver.can_reg_data_out == 8'b10000000);
+can_fd_receiver.reg_re = 1'b1;
+can_fd_receiver.reg_addr_read = 8'd3;
+wait (can_fd_receiver.can_reg_data_out == 8'b10000000);
 @ (posedge clk);
 @ (negedge clk);
 
 // Decoding Error Capture Code - SJA1000
-t_can_fd_receiver.reg_re = 1'b1;
-t_can_fd_receiver.reg_addr_read = REG_ECC;
-wait (t_can_fd_receiver.can_reg_data_out != 8'b00000000);
-can_bus_error_decoder_SJA1000(t_can_fd_receiver.can_reg_data_out);
+can_fd_receiver.reg_re = 1'b1;
+can_fd_receiver.reg_addr_read = REG_ECC;
+wait (can_fd_receiver.can_reg_data_out != 8'b00000000);
+can_bus_error_decoder_SJA1000(can_fd_receiver.can_reg_data_out);
 @ (posedge clk);
 @ (negedge clk);
 
 // Reading Error Passive Interrupt - SJA1000
-t_can_fd_receiver.reg_re = 1'b1;
-t_can_fd_receiver.reg_addr_read = 8'd3;
-wait (t_can_fd_receiver.can_reg_data_out == 8'b00100000);
+can_fd_receiver.reg_re = 1'b1;
+can_fd_receiver.reg_addr_read = 8'd3;
+wait (can_fd_receiver.can_reg_data_out == 8'b00100000);
 
 end
 endtask
@@ -418,46 +418,46 @@ write_CAN_FD_Receiver_Register(8'h1C, 8'hCB);
 // FD Receiver TX Command - SJA1000
 write_CAN_FD_Receiver_Register(REG_CMR, 8'h01);
 
-wait(t_can_fd_receiver.irqn == 1'b0 && t_can_fd_tolerant.irqn == 1'b0);
+wait(can_fd_receiver.irqn == 1'b0 && can_fd_tolerant.irqn == 1'b0);
 
 // Reading Transmit Interrupt on FD Receiver 
-t_can_fd_receiver.reg_re = 1'b1;
-t_can_fd_receiver.reg_addr_read = 8'd3;
-wait (t_can_fd_receiver.can_reg_data_out == 8'b00000010);
+can_fd_receiver.reg_re = 1'b1;
+can_fd_receiver.reg_addr_read = 8'd3;
+wait (can_fd_receiver.can_reg_data_out == 8'b00000010);
 @ (posedge clk);
 @ (negedge clk);
-t_can_fd_receiver.reg_re = 1'b0;
-t_can_fd_receiver.reg_addr_read = 8'hx;
+can_fd_receiver.reg_re = 1'b0;
+can_fd_receiver.reg_addr_read = 8'hx;
 
 // Reading Receive Interrupt on FD Tolerant - SJA1000
-t_can_fd_tolerant.reg_re = 1'b1;
-t_can_fd_tolerant.reg_addr_read = 8'd3;
-wait (t_can_fd_tolerant.can_reg_data_out == 8'b00000001);
+can_fd_tolerant.reg_re = 1'b1;
+can_fd_tolerant.reg_addr_read = 8'd3;
+wait (can_fd_tolerant.can_reg_data_out == 8'b00000001);
 @ (posedge clk);
 @ (negedge clk);
-t_can_fd_tolerant.reg_re = 1'b0;
-t_can_fd_tolerant.reg_addr_read = 8'hx;
+can_fd_tolerant.reg_re = 1'b0;
+can_fd_tolerant.reg_addr_read = 8'hx;
 
 // FD Tolerant TX Command - SJA1000
 write_CAN_FD_Tolerant_Register(REG_CMR, 8'h01);
 
-wait(t_can_fd_receiver.irqn == 1'b0 && t_can_fd_tolerant.irqn == 1'b0);
+wait(can_fd_receiver.irqn == 1'b0 && can_fd_tolerant.irqn == 1'b0);
 
 // Reading Transmit Interrupt on FD Tolerant 
-t_can_fd_tolerant.reg_re = 1'b1;
-t_can_fd_tolerant.reg_addr_read = 8'd3;
-wait (t_can_fd_tolerant.can_reg_data_out == 8'b00000011);
+can_fd_tolerant.reg_re = 1'b1;
+can_fd_tolerant.reg_addr_read = 8'd3;
+wait (can_fd_tolerant.can_reg_data_out == 8'b00000011);
 @ (posedge clk);
 @ (negedge clk);
-t_can_fd_tolerant.reg_re = 1'b0;
+can_fd_tolerant.reg_re = 1'b0;
 
 // Reading Receive Interrupt on FD Receiver - SJA1000
-t_can_fd_receiver.reg_re = 1'b1;
-t_can_fd_receiver.reg_addr_read = 8'd3;
-wait (t_can_fd_receiver.can_reg_data_out == 8'b00000001);
+can_fd_receiver.reg_re = 1'b1;
+can_fd_receiver.reg_addr_read = 8'd3;
+wait (can_fd_receiver.can_reg_data_out == 8'b00000001);
 @ (posedge clk);
 @ (negedge clk);
-t_can_fd_receiver.reg_re = 1'b0;
+can_fd_receiver.reg_re = 1'b0;
 
 end
 endtask
@@ -522,11 +522,11 @@ begin
  wait_11_bits(2000);
 
 
-t_can_fd_tolerant.reg_re = 1'b1;
-t_can_fd_tolerant.reg_addr_read = 8'd3;
+can_fd_tolerant.reg_re = 1'b1;
+can_fd_tolerant.reg_addr_read = 8'd3;
 while (1) begin
   
-//$display("(%0t) Writing on CAN FD Receiver TX Buffer [%0x]\n",$time ,t_can_fd_tolerant.can_reg_data_out);
+//$display("(%0t) Writing on CAN FD Receiver TX Buffer [%0x]\n",$time ,can_fd_tolerant.can_reg_data_out);
 // TX Buffer - SJA1000 
 write_CAN_FD_Tolerant_Register(8'h10, 8'h88);
 write_CAN_FD_Tolerant_Register(8'h11, 8'hA6);
@@ -544,12 +544,12 @@ write_CAN_FD_Tolerant_Register(8'h1C, 8'hCB);
 
 write_CAN_FD_Tolerant_Register(REG_CMR, 8'h01);
 
-wait(t_can_fd_receiver.irqn == 1'b0);
+wait(can_fd_receiver.irqn == 1'b0);
 
-t_can_fd_receiver.reg_re = 1'b1;
-t_can_fd_receiver.reg_addr_read = 8'd3;
-wait(t_can_fd_receiver.can_reg_data_out[0] == 1'b1);
-t_can_fd_receiver.reg_re = 1'b0;
+can_fd_receiver.reg_re = 1'b1;
+can_fd_receiver.reg_addr_read = 8'd3;
+wait(can_fd_receiver.can_reg_data_out[0] == 1'b1);
+can_fd_receiver.reg_re = 1'b0;
 end
 end
 endtask

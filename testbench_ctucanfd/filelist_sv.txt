@@ -1,6 +1,7 @@
 can_defines.sv
 
 ./structs/timing_structs.sv
+./structs/typedef_structs.sv
 
 ../hdl/can_top_raw.sv
 ../hdl/can_acf.sv
