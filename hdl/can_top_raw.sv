@@ -762,7 +762,7 @@ can_bsp i_can_bsp
 // Multiplexing wb_dat_o from registers and rx fifo
 always @ (extended_mode or addr_read or reset_mode)
 begin
-  if (extended_mode & (~reset_mode) & ((addr_read >= 8'd16) && (addr_read <= 8'd28)) | (~extended_mode) & ((addr_read >= 8'd20) && (addr_read <= 8'd29)))
+  if (extended_mode & (~reset_mode) & ( (addr_read >= 8'd16) && (addr_read <= 8'd28) | (addr_read >= 8'd32) && (addr_read <= 8'd39) ) | (~extended_mode) & ((addr_read >= 8'd20) && (addr_read <= 8'd29)))
     data_out_fifo_selected = 1'b1;
   else
     data_out_fifo_selected = 1'b0;

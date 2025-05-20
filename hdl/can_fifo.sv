@@ -185,7 +185,7 @@ output  [6:0] info_cnt;
 
 
 reg    [31:0] fifo [0:63];
-reg     [3:0] length_fifo[0:63];
+reg     [4:0] length_fifo[0:63];
 reg           overrun_info[0:63];
 reg     [5:0] rd_pointer;
 reg     [5:0] wr_pointer;
@@ -193,13 +193,13 @@ reg     [5:0] read_address;
 reg     [5:0] wr_info_pointer;
 reg     [5:0] rd_info_pointer;
 reg           wr_q;
-reg     [3:0] len_cnt;
+reg     [4:0] len_cnt;
 reg     [6:0] fifo_cnt;
 reg     [6:0] info_cnt;
 reg           latch_overrun;
 reg           initialize_memories;
 
-wire    [3:0] length_info;
+wire    [4:0] length_info;
 wire          write_length_info;
 wire          fifo_empty;
 wire          fifo_full;
@@ -223,9 +223,9 @@ end
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
-    len_cnt <= 4'h0;
+    len_cnt <= 5'h0;
   else if (reset_mode | write_length_info)
-    len_cnt <= 4'h0;
+    len_cnt <= 5'h0;
   else if (wr & (~fifo_full))
     len_cnt <= len_cnt + 1'b1;
 end
@@ -260,7 +260,7 @@ begin
   if (rst)
     rd_pointer <= 5'h0;
   else if (release_buffer & (~fifo_empty))
-    rd_pointer <= rd_pointer + {2'h0, length_info};
+    rd_pointer <= rd_pointer + {1'h0, length_info};
 end
 
 
@@ -298,9 +298,9 @@ begin
   else if (wr & (~release_buffer) & (~fifo_full))
     fifo_cnt <= fifo_cnt + 1'b1;
   else if ((~wr) & release_buffer & (~fifo_empty))
-    fifo_cnt <= fifo_cnt - {3'h0, length_info};
+    fifo_cnt <= fifo_cnt - {2'h0, length_info};
   else if (wr & release_buffer & (~fifo_full) & (~fifo_empty))
-    fifo_cnt <= fifo_cnt - {3'h0, length_info} + 1'b1;
+    fifo_cnt <= fifo_cnt - {2'h0, length_info} + 1'b1;
 end
 
 assign fifo_full = fifo_cnt == 7'd64;
@@ -331,7 +331,11 @@ assign info_empty = info_cnt == 7'd0;
 always @ (extended_mode or rd_pointer or addr)
 begin
   if (extended_mode)      // extended mode
-    read_address = rd_pointer + (addr - 6'd16);
+    if (addr > 31) begin
+      read_address = rd_pointer + (addr - 6'd19);
+    end else begin
+      read_address = rd_pointer + (addr - 6'd16);
+    end
   else                    // normal mode
     read_address = rd_pointer + (addr - 6'd20);
 end
@@ -372,7 +376,7 @@ assign data_out = fifo[read_address];
 always @ (posedge clk)
 begin
   if (write_length_info & (~info_full) | initialize_memories)
-    length_fifo[wr_info_pointer] <= len_cnt & {4{~initialize_memories}};
+    length_fifo[wr_info_pointer] <= len_cnt & {5{~initialize_memories}};
 end
 
 

@@ -1710,9 +1710,16 @@ assign storing_header = header_cnt < header_len;
 
 assign limited_data_len_minus1[6:0] = remote_rq ? 7'hf : (data_len -1'b1);   // - 1 because counter counts from 0
 
+
+
 assign reset_wr_fifo =  ( (~extended_mode & (data_cnt == (limited_data_len_minus1 + {4'b0, header_len}))) 
                           |
-                          (extended_mode & ( data_cnt  == (data_len >> 2) + header_len - 1'b1 ) )
+                          (
+                            extended_mode & ( 
+                              ( ~(&data_len[1:0]) & data_cnt  == (data_len >> 2) + header_len - 1'b1 ) // data_len = 4*k bytes
+                              | ( (|data_len[1:0]) & data_cnt  == (data_len >> 2) + header_len ) // data_len < 4 bytes or 4 bytes < data_len < 8 bytes
+                              )
+                          )
                         ) || reset_mode;
 
 assign err = form_err | stuff_err | bit_err | ack_err | form_err_latched | stuff_err_latched | bit_err_latched | ack_err_latched | crc_err;
@@ -1818,7 +1825,8 @@ always @(posedge clk or posedge rst) begin
 end
 
 logic [3:0] fifo_data_wr_index;
-assign fifo_data_wr_index = extended_mode ? (data_cnt - {1'b0, header_len}) >>2 : data_cnt - {1'b0, header_len};
+
+assign fifo_data_wr_index =  data_cnt - {1'b0, header_len};
 
 
 // Multiplexing data that is stored to 64-byte fifo depends on the mode of operation and frame format
