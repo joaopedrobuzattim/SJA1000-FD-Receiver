@@ -36,4 +36,22 @@ typedef struct {
   logic [63:0] timestamp;        
 } t_ctu_can_fd;
 
+typedef struct {
+  logic [3:0] dlc;
+  logic rtr;
+  logic ide;
+  logic [10:0] id_base;
+  logic [17:0] id_ext;
+  logic [7:0] data [0:7];
+} t_can_classic_frame;
+
+typedef struct {
+  logic [3:0] dlc;
+  logic brs;
+  logic ide;
+  logic [10:0] id_base;
+  logic [17:0] id_ext;
+  logic [7:0] data [0:63];
+} t_can_fd_frame;
+
 

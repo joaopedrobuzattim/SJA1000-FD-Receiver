@@ -4,6 +4,7 @@ xcelium.*
 *.log
 *.svwf
 *.key
+*.sim
 hdl.var
 cds.lib
 
