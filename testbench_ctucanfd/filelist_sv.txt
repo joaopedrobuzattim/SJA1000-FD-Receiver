@@ -13,7 +13,7 @@ can_defines.sv
 ../hdl/can_registers.sv
 ../hdl/can_tx_buffer.sv
 ../hdl/can_dlc_decoder.sv
-../hdl/can_protocol_fsm_control.sv
+../hdl/can_protocol_control_fsm.sv
 
 timescale.sv
 can_testbench_defines.sv
