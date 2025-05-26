@@ -378,7 +378,7 @@ module can_bsp
   output wire        fdf_detected,
   output reg         rx_r0_fd,
   output wire        rx_idle,
-  output reg         transmitting,
+  output wire        transmitting,
   output reg         transmitter,
   output wire        go_rx_inter,
   output wire        not_first_bit_of_inter,
@@ -448,10 +448,8 @@ module can_bsp
   output wire        send_ack
 );
 
-parameter Tp = 1;
-
 reg           reset_mode_q;
-reg     [9:0] bit_cnt; // FD Frames ( 512 bits  contagem maxima para o campo de DATA)
+reg     [8:0] bit_cnt; // FD Frames ( 512 bits  contagem maxima para o campo de DATA)
 
 wire    [6:0] data_len;
 reg     [3:0] data_len_code;
@@ -575,7 +573,14 @@ wire          bit_de_stuff_tx;
 
 wire          rule5;
 
+// Operation Control State Machine
+wire          go_oc_transmitting;
+wire          go_oc_receiving;
+wire          go_oc_idle;
+wire          go_oc_integrating;
+
 /* Rx state machine */
+wire          go_rx_integrating;
 wire          go_rx_idle;
 wire          go_rx_id1;
 wire          go_rx_rtr1;
@@ -982,13 +987,13 @@ assign bit_de_stuff_rx_stuff_count = rx_stuff_count & ( bit_cnt_rx_stuff_cnt == 
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
-    bit_cnt <= 10'd0;
+    bit_cnt <= 9'd0;
   else if (FD_tolerant & ( go_rx_id1 | go_rx_id2 | go_rx_dlc | go_rx_data | go_rx_crc |
            go_rx_ack | go_rx_eof | go_rx_inter | go_error_frame | go_overload_frame | go_rx_skip_fdf ) )
-    bit_cnt <= 10'd0;
+    bit_cnt <= 9'd0;
   else if (go_rx_id1 | go_rx_id2 | go_rx_dlc | go_rx_data | go_rx_stuff_count | go_rx_crc |
           go_rx_ack | go_rx_eof | go_rx_inter | go_error_frame | go_overload_frame)
-    bit_cnt <= 10'd0;
+    bit_cnt <= 9'd0;
   else if ( sample_point & (~bit_de_stuff) & (~bit_de_stuff_rx_stuff_count) )
     bit_cnt <= bit_cnt + 1'b1;
 end
@@ -1874,20 +1879,6 @@ begin
 end
 
 
-
-// Signal "transmitting" signals that the core is a transmitting (message, error frame or overload frame). No synchronization is done meanwhile.
-// Node might be both transmitter or receiver (sending error or overload frame)
-always @ (posedge clk or posedge rst)
-begin
-  if (rst)
-    transmitting <= 1'b0;
-  else if (go_error_frame | go_overload_frame | go_tx | send_ack)
-    transmitting <= 1'b1;
-  else if (reset_mode | go_rx_idle | (go_rx_id1 & (~tx_state)) | (arbitration_lost & tx_state))
-    transmitting <= 1'b0;
-end
-
-
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
@@ -2171,10 +2162,10 @@ end
 
 
 
-assign error_capture_code_segment[0] = rx_idle | rx_ide | (rx_id2 & (bit_cnt<6'd13)) | rx_r1 | rx_r0 | rx_dlc | rx_ack | rx_ack_lim | error_frame & node_error_active;
+assign error_capture_code_segment[0] = rx_idle | rx_ide | (rx_id2 & (bit_cnt<9'd13)) | rx_r1 | rx_r0 | rx_dlc | rx_ack | rx_ack_lim | error_frame & node_error_active;
 assign error_capture_code_segment[1] = rx_idle | rx_id1 | rx_id2 | rx_dlc | rx_data | rx_ack_lim | rx_eof | rx_inter | error_frame & node_error_passive;
-assign error_capture_code_segment[2] = (rx_id1 & (bit_cnt>6'd7)) | rx_rtr1 | rx_ide | rx_id2 | rx_rtr2 | rx_r1 | error_frame & node_error_passive | overload_frame;
-assign error_capture_code_segment[3] = (rx_id2 & (bit_cnt>6'd4)) | rx_rtr2 | rx_r1 | rx_r0 | rx_dlc | rx_data | rx_crc | rx_crc_lim | rx_ack | rx_ack_lim | rx_eof | overload_frame;
+assign error_capture_code_segment[2] = (rx_id1 & (bit_cnt>9'd7)) | rx_rtr1 | rx_ide | rx_id2 | rx_rtr2 | rx_r1 | error_frame & node_error_passive | overload_frame;
+assign error_capture_code_segment[3] = (rx_id2 & (bit_cnt>9'd4)) | rx_rtr2 | rx_r1 | rx_r0 | rx_dlc | rx_data | rx_crc | rx_crc_lim | rx_ack | rx_ack_lim | rx_eof | overload_frame;
 assign error_capture_code_segment[4] = rx_crc_lim | rx_ack | rx_ack_lim | rx_eof | rx_inter | error_frame | overload_frame;
 assign error_capture_code_direction  = ~transmitting;
 
@@ -2206,12 +2197,38 @@ begin
 end
 
 
+// ########################################################
+// # Operation Control FSM
+// ######################################################## 
+assign go_oc_transmitting = go_error_frame | go_overload_frame | go_tx;
+assign go_oc_receiving    = (go_rx_id1 & (~tx_state)) | (arbitration_lost & tx_state);
+assign go_oc_idle         = go_rx_idle ;
+assign go_oc_integrating  = go_rx_integrating;
+
+
+can_operation_control_fsm i_can_operation_control_fsm (
+
+    .clk_i(clk),
+    .rst_i(rst),
+
+    // Data Path Flags
+    .go_oc_integrating_i(go_oc_integrating),
+    .go_oc_transmitting_i(go_oc_transmitting),
+    .go_oc_receiving_i(go_oc_receiving),
+    .go_oc_idle_i(go_oc_idle),
+    .reset_mode_i(reset_mode),
+    .bus_free_i(bus_free),
+
+    // Current State
+    .is_transmitting_o(transmitting)
+);
+
 
 // ########################################################
 // # Next State Flags
 // ######################################################## 
 
-
+assign go_rx_integrating = (~reset_mode) & reset_mode_q;
 assign go_rx_idle     =                   sample_point &  sampled_bit & last_bit_of_inter | bus_free & (~node_bus_off);
 assign go_rx_id1      =                   sample_point &  (~sampled_bit) & (rx_idle | last_bit_of_inter);
 assign go_rx_rtr1     = (~bit_de_stuff) & sample_point &  rx_id1  & (bit_cnt[3:0] == 4'd10);
@@ -2289,8 +2306,8 @@ can_protocol_control_fsm i_can_protocol_control_fsm (
     .clk_i(clk),
     .rst_i(rst),
 
+    .go_rx_integrating_i(go_rx_integrating),
     .reset_mode_i(reset_mode),
-    .reset_mode_q_i(reset_mode_q),
     .bus_free_i(bus_free),
 
     .go_rx_inter_i(go_rx_inter),
