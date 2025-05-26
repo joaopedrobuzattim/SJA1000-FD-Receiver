@@ -228,11 +228,28 @@ begin
 
   #1000;
 
-  //fd_frame_ISO_on_bus();
-  //fd_frame_NON_ISO_on_bus();
+  fd_frame_ISO_on_bus();
+  
+  reg_rst = 1'b0;
+  #1000;
+  reg_rst = 1'b1;
+  #1000;
+
+  fd_frame_NON_ISO_on_bus();
+
+  reg_rst = 1'b0;
+  #1000;
+  reg_rst = 1'b1;
+  #1000;
+
   SJA1000_send_extended_frame();
   
-  // error_caused_by_receiving_ISO_FD_Frame();
+  reg_rst = 1'b0;
+  #1000;
+  reg_rst = 1'b1;
+  #1000;
+
+  error_caused_by_receiving_ISO_FD_Frame();
   // loop_sending_extended_frame();
 
   #12000;
@@ -543,7 +560,7 @@ begin
   // Reading Interrupt Register
   can_fd_receiver.reg_re = 1'b1;
   can_fd_receiver.reg_addr_read = REG_IR_EXT;
-  wait(can_fd_receiver.can_reg_data_out != 32'h0);
+  wait(can_fd_receiver.can_reg_data_out == 32'h1);
 
   assert (can_fd_receiver.can_reg_data_out == 32'h1) $display ("(%0t) Receive Interrupt on CAN 2!\n", $time);
   else $error("(%0t) Expect to read Receive Interrupt on CAN 2!\n", $time);
@@ -706,7 +723,7 @@ wait(can_fd_receiver.irqn == 1'b0 && can_fd_tolerant.irqn == 1'b0);
 // Reading Interrupt Register CAN 2
 can_fd_receiver.reg_re = 1'b1;
 can_fd_receiver.reg_addr_read = REG_IR_EXT;
-wait(can_fd_receiver.can_reg_data_out != 32'h0);
+wait(can_fd_receiver.can_reg_data_out == 32'h2);
 assert (can_fd_receiver.can_reg_data_out == 32'h2) $display ("(%0t) Transmit Interrupt on CAN 2!\n", $time);
 else $error("(%0t) Expect to read Transmit Interrupt on CAN 2!\n", $time);
 can_fd_receiver.reg_re = 1'b0;
@@ -714,7 +731,7 @@ can_fd_receiver.reg_re = 1'b0;
 // Reading Interrupt Register CAN 1
 can_fd_tolerant.reg_re = 1'b1;
 can_fd_tolerant.reg_addr_read = REG_IR_EXT;
-wait(can_fd_tolerant.can_reg_data_out != 32'h0);
+wait(can_fd_tolerant.can_reg_data_out == 32'h1);
 assert (can_fd_tolerant.can_reg_data_out == 32'h1) $display ("(%0t) Receive Interrupt on CAN 1!\n", $time);
 else $error("(%0t) Expect to read Receive Interrupr on CAN 1!\n", $time);
 can_fd_tolerant.reg_re = 1'b0;
