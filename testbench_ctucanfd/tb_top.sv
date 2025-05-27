@@ -52,6 +52,13 @@ localparam logic [7:0]  REG_BTR0_FD           = 8'h19;
 localparam logic [7:0]  REG_BTR1_FD           = 8'h1A;
 localparam logic [7:0]  REG_CDR               = 8'h1F;
 
+// Set CLK Frequency
+
+localparam logic EN_500_MHz_Frequency = 1'b1;                      // Set  to 1'b1 to use 500 MHz clock frequency
+localparam int   clk_period_ns = EN_500_MHz_Frequency ? 2 : 10;    // 2 ns -> 500 MHz, 10 ns -> 100 MHz  
+
+
+
 // ############################################################
 // #                                                          #
 // #                ------> STRUCTS <------                   #
@@ -106,36 +113,48 @@ typedef struct {
   logic [7:0] data [0:63];
 } t_can_data_frame;
 
-struct {
-  logic [6:0] prop_seg           = 7'd29;
-  logic [5:0] phase_seg_1        = 6'd10;
-  logic [5:0] phase_seg_2        = 6'd10;
-  logic [7:0] baud_r_presc       = 8'd4;
-  logic [4:0] sjw                = 5'd3;
+// Timing Parameters
 
-  logic [5:0] prop_seg_fd        = 6'd29;
-  logic [4:0] phase_seg_1_fd     = 5'd10;
-  logic [4:0] phase_seg_2_fd     = 5'd10;
-  logic [7:0] baud_r_presc_fd    = 8'd2;
-  logic [4:0] sjw_fd             = 5'd3;
-  
+// Input Frequency: 100 MHz
+// Nominal Bit Rate: 500 Kbps
+// Data Bit Rate:    1 Mbps
+
+// ------------ OR --------------
+
+// Input Frequency: 500 MHz
+// Nominal Bit Rate: 1 Mbps
+// Data Bit Rate:    8 Mbps
+
+struct {
+  logic [6:0] prop_seg           = EN_500_MHz_Frequency ? 7'd62 : 7'd29;   
+  logic [5:0] phase_seg_1        = EN_500_MHz_Frequency ? 6'd31 : 6'd10;
+  logic [5:0] phase_seg_2        = EN_500_MHz_Frequency ? 6'd31 : 6'd10;
+  logic [7:0] baud_r_presc       = EN_500_MHz_Frequency ? 8'd4  : 8'd4;
+  logic [4:0] sjw                = EN_500_MHz_Frequency ? 5'd4  : 5'd3;
+
+  logic [5:0] prop_seg_fd        = EN_500_MHz_Frequency ? 6'd16 : 6'd29;
+  logic [4:0] phase_seg_1_fd     = EN_500_MHz_Frequency ? 5'd7  : 5'd10;
+  logic [4:0] phase_seg_2_fd     = EN_500_MHz_Frequency ? 5'd7  : 5'd10;
+  logic [7:0] baud_r_presc_fd    = EN_500_MHz_Frequency ? 8'd2  : 8'd2;
+  logic [4:0] sjw_fd             = EN_500_MHz_Frequency ? 5'd4  : 5'd3;
+
 } ctu_can_fd_timing;
 
-// CAN FD Tolerant - Timing Parameters
-struct {
-  logic [6:0] prop_seg           = 7'd29;
-  logic [5:0] phase_seg_1        = 6'd9;
-  logic [5:0] phase_seg_2        = 6'd9;
-  logic [6:0] baud_r_presc       = 8'd1;
-  logic [4:0] sjw                = 5'd2;
-  logic       triple_sampling    = 1'b1;
 
-  logic [5:0] prop_seg_fd        = 6'd29;
-  logic [4:0] phase_seg_1_fd     = 5'd9;
-  logic [4:0] phase_seg_2_fd     = 5'd9;
-  logic [6:0] baud_r_presc_fd    = 8'd0;
-  logic [4:0] sjw_fd             = 5'd2;
-  logic       triple_sampling_fd = 1'b1;
+struct {
+  logic [6:0] prop_seg           = EN_500_MHz_Frequency ? 7'd62 : 7'd29;
+  logic [5:0] phase_seg_1        = EN_500_MHz_Frequency ? 6'd30 : 6'd9;
+  logic [5:0] phase_seg_2        = EN_500_MHz_Frequency ? 6'd30 : 6'd9;
+  logic [6:0] baud_r_presc       = EN_500_MHz_Frequency ? 8'd1  : 8'd1;
+  logic [4:0] sjw                = EN_500_MHz_Frequency ? 5'd3  : 5'd2;
+  logic       triple_sampling    = EN_500_MHz_Frequency ? 1'b1  : 1'b1;
+
+  logic [5:0] prop_seg_fd        = EN_500_MHz_Frequency ? 6'd16 : 6'd29;
+  logic [4:0] phase_seg_1_fd     = EN_500_MHz_Frequency ? 5'd6  : 5'd9;
+  logic [4:0] phase_seg_2_fd     = EN_500_MHz_Frequency ? 5'd6  : 5'd9;
+  logic [6:0] baud_r_presc_fd    = EN_500_MHz_Frequency ? 8'd0  : 8'd0;
+  logic [4:0] sjw_fd             = EN_500_MHz_Frequency ? 5'd3  : 5'd2;
+  logic       triple_sampling_fd = EN_500_MHz_Frequency ? 1'b1  : 1'b1;
   
 } sja1000_can_fd_timing;
 
@@ -217,42 +236,49 @@ assign can_bus_short_rx = can_fd_tolerant.tx_o & ctu_can_fd.can_tx & can_fd_rece
 initial
 begin
   clk=0;
-  forever #5 clk = ~clk;
+  forever #(clk_period_ns/2) clk = ~clk;
 end
 
 initial
 begin
-  reg_rst = 1'b0;
-  #1000;
-  reg_rst = 1'b1;
 
-  #1000;
+  // Initializing input ports
+  can_fd_tolerant.reg_we         = 1'b0;
+  can_fd_tolerant.reg_re         = 1'b0;
+  can_fd_tolerant.reg_data_in    = 32'h0;
+  can_fd_tolerant.reg_addr_read  = 8'h0;
+  can_fd_tolerant.reg_addr_write = 8'h0;
+  can_fd_receiver.reg_we         = 1'b0;
+  can_fd_receiver.reg_re         = 1'b0;
+  can_fd_receiver.reg_data_in    = 32'h0;
+  can_fd_receiver.reg_addr_read  = 8'h0;
+  can_fd_receiver.reg_addr_write = 8'h0;
+
+  reg_rst = 1'b0;
+  #125;
+  reg_rst = 1'b1;
+  #125;
 
   fd_frame_ISO_on_bus();
-  
-  reg_rst = 1'b0;
-  #1000;
-  reg_rst = 1'b1;
-  #1000;
-
   fd_frame_NON_ISO_on_bus();
 
   reg_rst = 1'b0;
-  #1000;
+  #125;
   reg_rst = 1'b1;
-  #1000;
+  #125;
 
   SJA1000_send_extended_frame();
-  
+
   reg_rst = 1'b0;
-  #1000;
+  #125;
   reg_rst = 1'b1;
-  #1000;
+  #125;
+
 
   error_caused_by_receiving_ISO_FD_Frame();
+
   // loop_sending_extended_frame();
 
-  #12000;
   $stop;
 
 end
@@ -852,6 +878,101 @@ $display("(%0t) CAN 1 FIFO Data 6: %b\n", $time, can_fd_receiver.can_reg_data_ou
 end
 endtask
 
+// Description: On this task, CTU CAN FD transmists a FD ISO message along the bus 
+// and the controller should throw and error frame 
+task error_caused_by_receiving_ISO_FD_Frame; 
+begin
+  bus_timing_register_configuration_CTU_CAN_FD();
+
+  // Mode Reg - CTU CAN FD
+  write_CTU_CAN_FD_register(4'b0011, CTU_CAN_FD_BASE + MODE_OFFSET, 32'b00000000000000000000000000010000);
+
+  // Settings Reg - CTU CAN FD
+  write_CTU_CAN_FD_register(4'b1100, CTU_CAN_FD_BASE + MODE_OFFSET, 32'b00000000010000000000000000000000);
+
+  wait_11_bits(2000);
+
+ // TX Buffer - CTU CAN FD
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_1_OFFSET,  32'b00000000000000000000001010001000);
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_2_OFFSET,  32'b10101010101010101010101010101010);
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_3_OFFSET,  32'b00000000000000000000000000000000);
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_4_OFFSET,  32'b00000000000000000000000000000000);
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_5_OFFSET,  32'b11111111111111111111111111111111);
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_6_OFFSET,  32'b00000000000000000000000000000000);
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_7_OFFSET,  32'b10101010101010101010101010101010);
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_8_OFFSET,  32'b10101010101010101010101010101010);
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_9_OFFSET,  32'b10101010101010101010101010101010);
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_10_OFFSET, 32'b10101010101010101010101010101010);
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_11_OFFSET, 32'b10101010101010101010101010101010);
+  write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_12_OFFSET, 32'b10101010101010101010101010101010);
+
+  // Reset Mode - SJA1000
+  write_CAN_FD_Tolerant_Register(REG_MOD, 8'h1);
+  write_CAN_FD_Receiver_Register(REG_MOD, 8'h1);
+
+
+  // Extended Mode - SJA10000
+  write_CAN_FD_Tolerant_Register(REG_CDR, {1'b1, 7'h0});  
+  write_CAN_FD_Receiver_Register(REG_CDR, {1'b1, 7'h0});  
+
+  bus_timing_register_configuration_SJA1000();
+
+  // Enable interruptions 
+  write_CAN_FD_Tolerant_Register(REG_IER_EXT, 8'hFF);  
+  write_CAN_FD_Receiver_Register(REG_IER_EXT, 8'hFF);  
+
+  // Acceptance Code and Acceptance Mask - SJA10000
+  write_CAN_FD_Tolerant_Register(8'd16, 8'ha6); // acceptance code 0
+  write_CAN_FD_Tolerant_Register(8'd17, 8'hb0); // acceptance code 1
+  write_CAN_FD_Tolerant_Register(8'd18, 8'h12); // acceptance code 2
+  write_CAN_FD_Tolerant_Register(8'd19, 8'h30); // acceptance code 3
+  write_CAN_FD_Tolerant_Register(8'd20, 8'hff); // acceptance mask 0
+  write_CAN_FD_Tolerant_Register(8'd21, 8'hff); // acceptance mask 1
+  write_CAN_FD_Tolerant_Register(8'd22, 8'hff); // acceptance mask 2
+  write_CAN_FD_Tolerant_Register(8'd23, 8'hff); // acceptance mask 3
+
+  write_CAN_FD_Receiver_Register(8'd16, 8'ha6); // acceptance code 0
+  write_CAN_FD_Receiver_Register(8'd17, 8'hb0); // acceptance code 1
+  write_CAN_FD_Receiver_Register(8'd18, 8'h12); // acceptance code 2
+  write_CAN_FD_Receiver_Register(8'd19, 8'h30); // acceptance code 3
+  write_CAN_FD_Receiver_Register(8'd20, 8'hff); // acceptance mask 0
+  write_CAN_FD_Receiver_Register(8'd21, 8'hff); // acceptance mask 1
+  write_CAN_FD_Receiver_Register(8'd22, 8'hff); // acceptance mask 2
+  write_CAN_FD_Receiver_Register(8'd23, 8'hff); // acceptance mask 3
+
+  // FD RX (NON ISO) - SJA1000
+  write_CAN_FD_Receiver_Register(8'd24, 8'h1);
+
+  // FD Tolerant - SJA1000
+  write_CAN_FD_Tolerant_Register(8'd24, 8'h0);
+
+
+  // Operation Mode - SJA1000
+  write_CAN_FD_Tolerant_Register(REG_MOD, 8'h0);
+  write_CAN_FD_Receiver_Register(REG_MOD, 8'h0);
+
+ wait_11_bits(2000);
+
+  // TX COMMAND - CTU CAN FD
+  write_CTU_CAN_FD_register(4'b0011, CTU_CAN_FD_BASE + TX_COMMAND_OFFSET, 32'b00000000000000000000000100000010);
+
+
+  while(1) begin
+  can_fd_receiver.reg_re = 1'b0;
+  $display("(%0t) Waiting for SJA1000 interruption\n", $time);
+  wait(can_fd_receiver.irqn == 1'b0);
+  can_fd_receiver.reg_re = 1'b1;
+  can_fd_receiver.reg_addr_read = REG_IR_EXT;
+  wait(can_fd_receiver.can_reg_data_out == 32'h80);
+  $display("(%0t) SJA1000 Bus Error Interruption\n", $time);
+  can_fd_receiver.reg_addr_read = REG_ECC;
+  wait(can_fd_receiver.can_reg_data_out != 32'h80);
+  $display("(%0t) SJA1000 Error Capture Code: %b\n", $time,  can_fd_receiver.can_reg_data_out);
+  $display("----------------------------------------\n");
+  end
+end
+endtask
+
 
 // Description: On this task, wr on CTU CAN FD is performed
 task write_CTU_CAN_FD_register;
@@ -893,8 +1014,8 @@ task write_CAN_FD_Tolerant_Register;
     @ (posedge clk);
     @ (negedge clk);
     can_fd_tolerant.reg_we = 1'b0;
-    can_fd_tolerant.reg_addr_write = 'hx;
-    can_fd_tolerant.reg_data_in = 'hx;
+    can_fd_tolerant.reg_addr_write = 'h0;
+    can_fd_tolerant.reg_data_in = 'h0;
   end
 endtask
 
@@ -914,8 +1035,8 @@ task write_CAN_FD_Receiver_Register;
     @ (posedge clk);
     @ (negedge clk);
     can_fd_receiver.reg_we = 1'b0;
-    can_fd_receiver.reg_addr_write = 'hx;
-    can_fd_receiver.reg_data_in = 'hx;
+    can_fd_receiver.reg_addr_write = 'h0;
+    can_fd_receiver.reg_data_in = 'h0;
   end
 endtask
 
@@ -923,11 +1044,6 @@ endtask
 // obtaining the desired baud rate for CTU CAN FD
 task bus_timing_register_configuration_CTU_CAN_FD; 
 begin
-  // clk -> 100MHz
-  // Baud Rate -> 500Kbit/s
-  // Baud Rate FD -> 2Mbit/s
-
-
   write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + BTR_OFFSET, {
     ctu_can_fd_timing.sjw,
     ctu_can_fd_timing.baud_r_presc,
@@ -952,10 +1068,6 @@ endtask
 // obtaining the desired baud rate for SJA1000
 task bus_timing_register_configuration_SJA1000; 
 begin
-  // clk -> 100MHz
-  // Baud Rate -> 500Kbit/s
-  // Baud Rate FD -> 2Mbit/s
-
   write_CAN_FD_Tolerant_Register(8'd6, {
     sja1000_can_fd_timing.triple_sampling,
     sja1000_can_fd_timing.sjw,
