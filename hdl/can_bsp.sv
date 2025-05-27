@@ -1386,72 +1386,9 @@ begin
     data_cnt <= data_cnt + 7'h1;
 end
 
-
-// wr-fifo-state
-typedef enum logic [1:0] { WR_FIFO_OFF, WR_FIFO_HEADER, WR_FIFO_DATA } CAN_wr_fifo_states;
-
-CAN_wr_fifo_states current_state, next_state;
-
-// ########################################################
-// # Next State Logic
-// ########################################################
-
-logic go_wr_fifo_header;
-logic go_wr_fifo_data;
-logic go_wr_fifo_off;
-
-assign go_wr_fifo_header = (go_rx_inter & id_ok & (~error_frame_ended) & ((~tx_state) | self_rx_request)) & ~(rx_skip_fdf);
-assign go_wr_fifo_data = ~(header_cnt < header_len);
-assign go_wr_fifo_off = (data_cnt == (limited_data_len_minus1 + {4'b0, header_len})) || reset_mode;
-
-always_comb begin
-    next_state = current_state;
-
-    case (current_state)
-      WR_FIFO_OFF: begin
-        if ( go_wr_fifo_header )  begin
-          next_state = WR_FIFO_HEADER;
-        end
-      end
-      WR_FIFO_HEADER: begin
-        if ( go_wr_fifo_data )  begin
-          next_state = WR_FIFO_DATA;
-        end else if ( go_wr_fifo_off ) begin
-          next_state = WR_FIFO_OFF;
-        end
-      end
-      WR_FIFO_DATA: begin
-        if( go_wr_fifo_off ) begin
-          next_state = WR_FIFO_OFF;
-        end
-      end
-    endcase
-end
-
-// ########################################################
-// # Current State Logic
-// ########################################################
-always @(posedge clk or posedge rst) begin
-    if (rst)
-        current_state <= WR_FIFO_OFF;
-    else
-        current_state <= next_state;
-end
-
-// ########################################################
-// # State Memory
-// ########################################################
-always @(posedge clk or posedge rst) begin
-    if (rst)
-        current_state <= WR_FIFO_OFF;
-    else
-        current_state <= next_state;
-end
-
 logic [3:0] fifo_data_wr_index;
 
 assign fifo_data_wr_index =  data_cnt - {1'b0, header_len};
-
 
 // Multiplexing data that is stored to 64-byte fifo depends on the mode of operation and frame format
 always_comb
