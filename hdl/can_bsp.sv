@@ -963,6 +963,7 @@ can_crc_destuff can_crc_destuff
   .enable(sample_point & rx_crc & edl),
   .bit_cnt(bit_cnt),
   .fixed_stuff_bit_error(fixed_stuff_bit_error),
+  .en_FD_iso(en_FD_iso),
   .crc_17_o(crc_in_17),
   .crc_21_o(crc_in_21)
 );
