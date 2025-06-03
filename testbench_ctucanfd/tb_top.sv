@@ -55,9 +55,7 @@ localparam logic [7:0]  REG_CDR               = 8'h1F;
 // Set CLK Frequency
 
 localparam logic EN_500_MHz_Frequency = 1'b1;                      // Set  to 1'b1 to use 500 MHz clock frequency
-localparam int   clk_period_ns = EN_500_MHz_Frequency ? 2 : 10;    // 2 ns -> 500 MHz, 10 ns -> 100 MHz  
-
-
+localparam int   clk_period_ns        = EN_500_MHz_Frequency ? 2 : 10;    // 2 ns -> 500 MHz, 10 ns -> 100 MHz  
 
 // ############################################################
 // #                                                          #
@@ -163,7 +161,8 @@ module tb_top();
 logic      clk;
 logic      extended_mode;
 logic      reg_rst;
-logic      rx;
+logic      tx;
+logic      delayed_tx;
 logic      can_bus_short_rx;
 
 `include "tb_tasks.sv"
@@ -228,8 +227,22 @@ can_top_level i_ctu_can_fd
   .timestamp(ctu_can_fd.timestamp)
 );
 
+
+assign tx = ctu_can_fd.can_tx & can_fd_tolerant.tx_o & can_fd_receiver.tx_o;
+
+// CAN transceiver delay
+always
+begin
+  wait (tx);
+  repeat (2*ctu_can_fd_timing.baud_r_presc) @ (posedge clk);   
+  #1 delayed_tx = tx;
+  wait (~tx);
+  repeat (2*ctu_can_fd_timing.baud_r_presc) @ (posedge clk); 
+  #1 delayed_tx = tx;
+end
+
 // Shorting RX Chanel
-assign can_bus_short_rx = can_fd_tolerant.tx_o & ctu_can_fd.can_tx & can_fd_receiver.tx_o;
+assign can_bus_short_rx = delayed_tx;
 
 
 // Clock de 100MHz
@@ -277,7 +290,7 @@ begin
 
   error_caused_by_receiving_ISO_FD_Frame();
 
-  // loop_sending_extended_frame();
+  // loop_sending_extended_frame();xrun
 
   $stop;
 
@@ -838,14 +851,14 @@ can_fd_tolerant.reg_re = 1'b0;
 can_fd_receiver.reg_re = 1'b1;
 can_fd_receiver.reg_addr_read = REG_SR;
 wait (can_fd_receiver.can_reg_data_out[0] == 1'h1);
-$display("(%0t) CAN 1 has message(s) available at FIFO \n", $time);
+$display("(%0t) CAN 2 has message(s) available at FIFO \n", $time);
 
 // Reading FIFO
 can_fd_receiver.reg_re = 1'b1;
 
 can_fd_receiver.reg_addr_read = 8'd16;  
 wait (can_fd_receiver.can_reg_data_out == 32'h00000088);
-$display("(%0t) CAN 1 FIFO Data 0: %b\n", $time, can_fd_receiver.can_reg_data_out);
+$display("(%0t) CAN 2 FIFO Data 0: %b\n", $time, can_fd_receiver.can_reg_data_out);
 $display("(%0t) ide: %b\n", $time, can_fd_receiver.can_reg_data_out[7]);
 $display("(%0t) fdf: %b\n", $time, can_fd_receiver.can_reg_data_out[5]);
 $display("(%0t) esi: %b\n", $time, can_fd_receiver.can_reg_data_out[4]);
@@ -853,27 +866,85 @@ $display("(%0t) DLC: %b\n", $time, can_fd_receiver.can_reg_data_out[3:0]);
 
 can_fd_receiver.reg_addr_read = 8'd17;  
 wait (can_fd_receiver.can_reg_data_out == 32'h000000A6);
-$display("(%0t) CAN 1 FIFO Data 1: %b\n", $time, can_fd_receiver.can_reg_data_out);
+$display("(%0t) CAN 2 FIFO Data 1: %b\n", $time, can_fd_receiver.can_reg_data_out);
 
 can_fd_receiver.reg_addr_read = 8'd18;  
 wait (can_fd_receiver.can_reg_data_out == 32'h00000000);
-$display("(%0t) CAN 1 FIFO Data 2: %b\n", $time, can_fd_receiver.can_reg_data_out);
+$display("(%0t) CAN 2 FIFO Data 2: %b\n", $time, can_fd_receiver.can_reg_data_out);
 
 can_fd_receiver.reg_addr_read = 8'd19;  
 wait (can_fd_receiver.can_reg_data_out == 32'h0000005A);
-$display("(%0t) CAN 1 FIFO Data 3: %b\n", $time, can_fd_receiver.can_reg_data_out);
+$display("(%0t) CAN 2 FIFO Data 3: %b\n", $time, can_fd_receiver.can_reg_data_out);
 
 can_fd_receiver.reg_addr_read = 8'd20;  
 wait (can_fd_receiver.can_reg_data_out == 32'h000000A8);
-$display("(%0t) CAN 1 FIFO Data 4: %b\n", $time, can_fd_receiver.can_reg_data_out);
+$display("(%0t) CAN 2 FIFO Data 4: %b\n", $time, can_fd_receiver.can_reg_data_out);
 
 can_fd_receiver.reg_addr_read = 8'd21;  
 wait (can_fd_receiver.can_reg_data_out == 32'hFFFFBCDE);
-$display("(%0t) CAN 1 FIFO Data 5: %b\n", $time, can_fd_receiver.can_reg_data_out);
+$display("(%0t) CAN 2 FIFO Data 5: %b\n", $time, can_fd_receiver.can_reg_data_out);
 
 can_fd_receiver.reg_addr_read = 8'd22;  
 wait (can_fd_receiver.can_reg_data_out == 32'hF00FEDCB);
-$display("(%0t) CAN 1 FIFO Data 6: %b\n", $time, can_fd_receiver.can_reg_data_out);
+$display("(%0t) CAN 2 FIFO Data 6: %b\n", $time, can_fd_receiver.can_reg_data_out);
+
+// FD Receiver TX Command - SJA1000 - release buffer
+write_CAN_FD_Receiver_Register(REG_CMR, 8'h04);
+
+// Reading Status Register
+can_fd_receiver.reg_re = 1'b1;
+can_fd_receiver.reg_addr_read = REG_SR;
+wait (can_fd_receiver.can_reg_data_out[0] == 1'h0);
+$display("(%0t) CAN 2 has no message(s) available at FIFO \n", $time);
+can_fd_receiver.reg_re = 1'b0;
+can_fd_receiver.reg_re = 1'b0;
+
+
+$display("(%0t) Receving classic CAN frame from CTU CAN FD \n", $time);
+
+// TX Buffer - CTU CAN FD
+write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_1_OFFSET,  32'b00000000000000000000000001000111);
+write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_2_OFFSET,  32'b10101010101010101010101010101010);
+write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_3_OFFSET,  32'b00000000000000000000000000000000);
+write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_4_OFFSET,  32'b00000000000000000000000000000000);
+write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_5_OFFSET,  32'b11111111111111111111111111111111);
+write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_6_OFFSET,  32'b00000000000000000000000000000000);
+write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_7_OFFSET,  32'b10101010101010101010101010101010);
+write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_8_OFFSET,  32'b10101010101010101010101010101010);
+write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_9_OFFSET,  32'b10101010101010101010101010101010);
+write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_10_OFFSET, 32'b10101010101010101010101010101010);
+write_CTU_CAN_FD_register(4'b1111, CTU_CAN_FD_BASE + TXTB1_DATA_11_OFFSET, 32'b10101010101010101010101010101010);
+
+// TX COMMAND - CTU CAN FD
+write_CTU_CAN_FD_register(4'b0011, CTU_CAN_FD_BASE + TX_COMMAND_OFFSET, 32'b00000000000000000000000100000010);
+// Wait for SJA1000 Receive interrupt 
+wait(can_fd_receiver.irqn == 1'b0 && can_fd_tolerant.irqn == 1'b0);
+
+// Reading Interrupt Register
+can_fd_receiver.reg_re = 1'b1;
+can_fd_receiver.reg_addr_read = REG_IR_EXT;
+wait(can_fd_receiver.can_reg_data_out == 32'h1);
+
+assert (can_fd_receiver.can_reg_data_out == 32'h1) $display ("(%0t) Receive Interrupt on CAN 2!\n", $time);
+else $error("(%0t) Expect to read Receive Interrupt on CAN 2!\n", $time);
+write_CAN_FD_Receiver_Register(REG_CMR, 8'h04);
+@ (posedge clk);
+
+assert (can_fd_receiver.irqn == 1'b1) $display ("(%0t) CAN 2 Interrup Flag Reseted!\n", $time);
+else $error("(%0t) Expect CAN 2 Interrupt Signal to be on logic level 1!\n", $time);
+
+// Reading Interrupt Register
+can_fd_tolerant.reg_re = 1'b1;
+can_fd_tolerant.reg_addr_read = REG_IR_EXT;
+wait(can_fd_tolerant.can_reg_data_out == 32'h1);
+
+assert (can_fd_tolerant.can_reg_data_out == 32'h1) $display ("(%0t) Receive Interrupt on CAN 1!\n", $time);
+else $error("(%0t) Expect to read Receive Interrupt on CAN 1!\n", $time);
+write_CAN_FD_Tolerant_Register(REG_CMR, 8'h04);
+@ (posedge clk);
+
+assert (can_fd_tolerant.irqn == 1'b1) $display ("(%0t) CAN 1 Interrup Flag Reseted!\n", $time);
+else $error("(%0t) Expect CAN 1 Interrupt Signal to be on logic level 1!\n", $time);
 
 end
 endtask
@@ -1120,40 +1191,8 @@ begin
 end
 endtask
 
-// task send_bit;
-//   input val;
-//   begin
-//     #1 rx=val;
-//     repeat ((`CAN_TIMING1_TSEG1 + `CAN_TIMING1_TSEG2 + 3)*BRP) @ (posedge clk);
-//   end
-// endtask
 
-// task send_fd_bit;
-//   input val;
-//   integer cnt;
-//   begin
-//     #1 rx=val;
-//     repeat ((`CAN_TIMING1_TSEG1 + `CAN_TIMING1_TSEG2 + 3)*BRP/FDBRMUL) @ (posedge clk);
-//   end
-// endtask
 
-// task send_bits;
-//   input integer cnt;
-//   input [1023:0] data;
-//   integer c;
-//   begin
-//     for (c=cnt; c > 0; c=c-1)
-//       send_bit(data[c-1]);
-//   end
-// endtask
 
-// task send_fd_bits;
-//   input integer cnt;
-//   input [1023:0] data;
-//   integer c;
-//   begin
-//     for (c=cnt; c > 0; c=c-1)
-//       send_fd_bit(data[c-1]);
-//   end
-// endtask
+
 endmodule
