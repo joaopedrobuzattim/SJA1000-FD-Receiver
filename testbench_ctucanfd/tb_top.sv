@@ -415,10 +415,11 @@ begin
   can_fd_receiver.reg_re = 1'b1;
 
   can_fd_receiver.reg_addr_read = 8'd16;  
-  wait (can_fd_receiver.can_reg_data_out == 32'h0000002F);
+  wait (can_fd_receiver.can_reg_data_out == 32'h0000012F);
   $display("(%0t) CAN 2 FIFO Data 0: %b\n", $time, can_fd_receiver.can_reg_data_out);
+  $display("(%0t) fdf: %b\n", $time, can_fd_receiver.can_reg_data_out[8]);
   $display("(%0t) ide: %b\n", $time, can_fd_receiver.can_reg_data_out[7]);
-  $display("(%0t) fdf: %b\n", $time, can_fd_receiver.can_reg_data_out[5]);
+  $display("(%0t) brs: %b\n", $time, can_fd_receiver.can_reg_data_out[5]);
   $display("(%0t) esi: %b\n", $time, can_fd_receiver.can_reg_data_out[4]);
   $display("(%0t) DLC: %b\n", $time, can_fd_receiver.can_reg_data_out[3:0]);
 
@@ -619,10 +620,11 @@ begin
   can_fd_receiver.reg_re = 1'b1;
 
   can_fd_receiver.reg_addr_read = 8'd16;  
-  wait (can_fd_receiver.can_reg_data_out == 32'h000000A7);
+  wait (can_fd_receiver.can_reg_data_out == 32'h000001A7);
   $display("(%0t) CAN 2 FIFO Data 0: %b\n", $time, can_fd_receiver.can_reg_data_out);
+  $display("(%0t) fdf: %b\n", $time, can_fd_receiver.can_reg_data_out[8]);
   $display("(%0t) ide: %b\n", $time, can_fd_receiver.can_reg_data_out[7]);
-  $display("(%0t) fdf: %b\n", $time, can_fd_receiver.can_reg_data_out[5]);
+  $display("(%0t) brs: %b\n", $time, can_fd_receiver.can_reg_data_out[5]);
   $display("(%0t) esi: %b\n", $time, can_fd_receiver.can_reg_data_out[4]);
   $display("(%0t) DLC: %b\n", $time, can_fd_receiver.can_reg_data_out[3:0]);
 

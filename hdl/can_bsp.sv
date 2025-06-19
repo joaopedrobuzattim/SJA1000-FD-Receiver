@@ -1395,14 +1395,14 @@ assign fifo_data_wr_index =  data_cnt - {1'b0, header_len};
 always_comb
 begin
   casex ({storing_header, extended_mode, ide, header_cnt, edl}) /* synthesis parallel_case */
-    7'b1_1_1_000_0  : data_for_fifo = { 24'b0, {1'b1, rtr2, 2'h0, data_len_code}};       // extended mode, extended format header 
-    7'b1_1_1_000_1  : data_for_fifo = { 24'b0, {1'b1, rtr2, 1'b1, esi, data_len_code}};  // extended mode, extended format header -> FD Frame
+    7'b1_1_1_000_0  : data_for_fifo = { 24'b0, {1'b1, rtr2, 2'h0, data_len_code}};            // extended mode, extended format header 
+    7'b1_1_1_000_1  : data_for_fifo = { 23'b0, {1'b1, 1'b1, rtr2, brs, esi, data_len_code}};  // extended mode, extended format header -> FD Frame
     7'b1_1_1_001_x  : data_for_fifo = { 24'b0, id[28:21]};                               // extended mode, extended format header
     7'b1_1_1_010_x  : data_for_fifo = { 24'b0, id[20:13]};                               // extended mode, extended format header
     7'b1_1_1_011_x  : data_for_fifo = { 24'b0, id[12:5]};                                // extended mode, extended format header
     7'b1_1_1_100_x  : data_for_fifo = { 24'b0, {id[4:0], 3'h0}};                         // extended mode, extended format header
     7'b1_1_0_000_0  : data_for_fifo = { 24'b0, {1'b0, rtr1, 2'h0, data_len_code}};       // extended mode, standard format header
-    7'b1_1_0_000_1  : data_for_fifo = { 24'b0, {1'b0, rtr1, 1'b1, esi, data_len_code}};  // extended mode, standard format header -> FD Frame
+    7'b1_1_0_000_1  : data_for_fifo = { 24'b0, {1'b1, 1'b0, rtr1, brs, esi, data_len_code}};  // extended mode, standard format header -> FD Frame
     7'b1_1_0_001_x  : data_for_fifo = { 24'b0, id[10:3]};                                // extended mode, standard format header
     7'b1_1_0_010_x  : data_for_fifo = { 24'b0, {id[2:0], rtr1, 4'h0}};                   // extended mode, standard format header
     7'b1_0_x_000_x  : data_for_fifo = { 24'b0, id[10:3]};                                // normal mode                    header
