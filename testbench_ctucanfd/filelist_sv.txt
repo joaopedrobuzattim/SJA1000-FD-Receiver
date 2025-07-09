@@ -1,7 +1,6 @@
 can_defines.sv
 
 ../hdl/can_top_raw.sv
-../hdl/can_top.sv
 ../hdl/can_acf.sv
 ../hdl/can_bsp.sv
 ../hdl/can_btl.sv
@@ -9,16 +8,13 @@ can_defines.sv
 ../hdl/can_crc.sv
 ../hdl/can_fifo.sv
 ../hdl/can_ibo.sv
-../hdl/can_ifc_8051.sv
-../hdl/can_ifc_apb.sv
-../hdl/can_ifc_axi_sync_duplex.sv
-../hdl/can_ifc_wb.sv
 ../hdl/can_register_asyn_syn.sv
 ../hdl/can_register_asyn.sv
 ../hdl/can_registers.sv
-../hdl/can_register_syn.sv
-../hdl/can_register.sv
+../hdl/can_tx_buffer.sv
 ../hdl/can_dlc_decoder.sv
+../hdl/can_protocol_control_fsm.sv
+../hdl/can_operation_control_fsm.sv
 
 timescale.sv
 can_testbench_defines.sv

@@ -1,7 +1,7 @@
 // synopsys translate_off
-`include "timescale.sv"
+
 // synopsys translate_on
-`include "can_defines.sv"
+
 `include "can_testbench_defines.sv"
 
 module can_testbench();
@@ -81,15 +81,6 @@ can_top_raw i_can_top
   .bus_off_on(bus_off_on),
   .irq_on(irqns[0]),
   .clkout_o(clkout)
-
-  // Bist
-`ifdef CAN_BIST
-  ,
-  // debug chain signals
-  .mbist_si_i(1'b0),       // bist scan serial in
-  .mbist_so_o(),           // bist scan serial out
-  .mbist_ctrl_i(3'b001)    // mbist scan {enable, clock, reset}
-`endif
 );
 
 
@@ -112,15 +103,6 @@ can_top_raw i_can_top2
   .bus_off_on(bus_off2_on),
   .irq_on(irqns[1]),
   .clkout_o(clkout)
-
-  // Bist
-`ifdef CAN_BIST
-  ,
-  // debug chain signals
-  .mbist_si_i(1'b0),       // bist scan serial in
-  .mbist_so_o(),           // bist scan serial out
-  .mbist_ctrl_i(3'b001)    // mbist scan {enable, clock, reset}
-`endif
 );
 
 

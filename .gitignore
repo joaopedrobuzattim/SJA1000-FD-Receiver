@@ -4,15 +4,18 @@ xcelium.*
 *.log
 *.svwf
 *.key
+*.sim
 hdl.var
 cds.lib
 
-testbench_ctucanfd/CTU_CAN_FD_RTL/*
-!testbench_ctucanfd/CTU_CAN_FD_RTL/.gitkeep
+testbench_ctucanfd/hdl_libs/CTU_CAN_FD_RTL/*
+!testbench_ctucanfd/hdl_libs/CTU_CAN_FD_RTL/.gitkeep
 
-testbench_ctucanfd/WORKLIB_SV/*
-!testbench_ctucanfd/WORKLIB_SV/.gitkeep
+testbench_ctucanfd/hdl_libs/WORKLIB_SV/*
+!testbench_ctucanfd/hdl_libs/WORKLIB_SV/.gitkeep
 
+synthesis/*
+testbench_after_syn/*
 
 # ICARUS + GTK
 *.vcd

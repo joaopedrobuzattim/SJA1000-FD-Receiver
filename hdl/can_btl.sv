@@ -148,9 +148,9 @@
 //
 
 // synopsys translate_off
-`include "timescale.sv"
+
 // synopsys translate_on
-`include "can_defines.sv"
+
 
 module can_btl
 (
@@ -159,21 +159,23 @@ module can_btl
   rx,
   tx,
 
-  /* Bus Timing 0 register */
+  /* Bus Timing Register */
+  prop_seg,
+  phase_seg_1,
+  phase_seg_2,
   baud_r_presc,
-  sync_jump_width,
-  baud_r_presc_fd,
-  sync_jump_width_fd,
-
-  /* Bus Timing 1 register */
-  time_segment1,
-  time_segment2,
+  sjw,
   triple_sampling,
-  time_segment1_fd,
-  time_segment2_fd,
+
+  /* Bus Timing Register FD */
+  prop_seg_fd,
+  phase_seg_1_fd,
+  phase_seg_2_fd,
+  baud_r_presc_fd,
+  sjw_fd,
   triple_sampling_fd,
 
-  /* FD Control Register  */
+  /* FD Control Register */
   en_FD_rx,
 
   /* Output signals from this module */
@@ -203,29 +205,28 @@ module can_btl
   fdf_brs_r_on
 );
 
-parameter Tp = 1;
-
 input         clk;
 input         rst;
 input         rx;
 input         tx;
 
+/* Bus Timing Register */
+input  [6:0] prop_seg;
+input  [5:0] phase_seg_1;
+input  [5:0] phase_seg_2;
+input  [6:0] baud_r_presc;
+input  [4:0] sjw;
+input        triple_sampling;
 
-/* Bus Timing 0 register */
-input   [5:0] baud_r_presc;
-input   [1:0] sync_jump_width;
-input   [5:0] baud_r_presc_fd;
-input   [1:0] sync_jump_width_fd;
+/* Bus Timing Register FD */
+input [5:0] prop_seg_fd;
+input [4:0] phase_seg_1_fd;
+input [4:0] phase_seg_2_fd;
+input [6:0] baud_r_presc_fd;
+input [4:0] sjw_fd;
+input       triple_sampling_fd;
 
-/* Bus Timing 1 register */
-input   [3:0] time_segment1;
-input   [2:0] time_segment2;
-input         triple_sampling;
-input   [3:0] time_segment1_fd;
-input   [2:0] time_segment2_fd;
-input         triple_sampling_fd;
-
-/* FD Data Bit Rate Register  */
+/* FD Data Bit Rate Register */
 input  en_FD_rx;
 
 /* Output from can_bsp module */
@@ -254,15 +255,15 @@ output        sampled_bit_q;
 output        tx_point;
 output        hard_sync;
 
-reg     [6:0] clk_cnt;
+reg     [7:0] clk_cnt;
 reg           clk_en;
 reg           clk_en_q;
 reg           sync_blocked;
 reg           hard_sync_blocked;
 reg           sampled_bit;
 reg           sampled_bit_q;
-reg     [4:0] quant_cnt;
-reg     [3:0] delay;
+reg     [7:0] quant_cnt;
+reg     [7:0] delay;
 reg           sync;
 reg           seg1;
 reg           seg2;
@@ -275,49 +276,48 @@ reg           tx_next_sp;
 wire          go_sync;
 wire          go_seg1;
 wire          go_seg2;
-wire [7:0]    preset_cnt;
+wire [8:0]    preset_cnt;
 wire          sync_window;
 wire          resync;
 
-reg   [5:0] baud_r_presc_value;
-reg   [1:0] sync_jump_width_value;
-reg   [3:0] time_segment1_value;
-reg   [2:0] time_segment2_value;
-reg         triple_sampling_value;
+reg   [6:0]  baud_r_presc_value;
+reg   [4:0]  sync_jump_width_value;
+reg   [7:0]  time_segment1_value;
+reg   [5:0]  time_segment2_value;
+reg          triple_sampling_value;
 
-
+// Timing segments must be muliplexed and increased (according to ISO 2015)
 always @(*)
 begin
   if (en_FD_rx & (go_rx_brs_on | fdf_brs_r_on)) begin
-    baud_r_presc_value =  (baud_r_presc_fd + 1'b1);
-    sync_jump_width_value = sync_jump_width_fd;
-    time_segment1_value = time_segment1_fd;
-    time_segment2_value = time_segment2_fd;
+    baud_r_presc_value    = baud_r_presc_fd;
+    sync_jump_width_value = sjw_fd;
+    time_segment1_value   = ({1'b0, phase_seg_1_fd} + {1'b0, prop_seg_fd});
+    time_segment2_value   = {1'b0, phase_seg_2_fd};
     triple_sampling_value = triple_sampling_fd;
   end else begin
-    baud_r_presc_value = (baud_r_presc+ 1'b1);
-    sync_jump_width_value = sync_jump_width;
-    time_segment1_value = time_segment1;
-    time_segment2_value = time_segment2;
+    baud_r_presc_value    = baud_r_presc;
+    sync_jump_width_value = sjw;
+    time_segment1_value   = phase_seg_1 + prop_seg;
+    time_segment2_value   = phase_seg_2;
     triple_sampling_value = triple_sampling;
   end
 end
 
-assign preset_cnt = (baud_r_presc_value)<<1;        // (BRP+1)*2
-assign hard_sync  =   (rx_idle | rx_inter | rx_r0_fd)  & (~rx) & sampled_bit & (~hard_sync_blocked);  // Hard synchronization
-assign resync     = (~rx_r0_fd) & (~rx_idle) & (~rx_inter) & (~rx) & sampled_bit & (~sync_blocked);       // Re-synchronization
-
+assign preset_cnt = (baud_r_presc_value + 1'b1)<<1;  // (BRP+1)*2
+assign hard_sync  = (rx_idle | rx_inter | rx_r0_fd) & (~rx) & sampled_bit & (~hard_sync_blocked);  // Hard synchronization
+assign resync     = (~rx_r0_fd) & (~rx_idle) & (~rx_inter) & (~rx) & sampled_bit & (~sync_blocked);  // Re-synchronization
 
 
 /* Generating general enable signal that defines baud rate. */
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
-    clk_cnt <= 7'h0;
+    clk_cnt <= 8'h0;
   else if (clk_cnt >= (preset_cnt-1'b1))
-    clk_cnt <=#Tp 7'h0;
+    clk_cnt <= 8'h0;
   else
-    clk_cnt <=#Tp clk_cnt + 1'b1;
+    clk_cnt <= clk_cnt + 1'b1;
 end
 
 
@@ -326,9 +326,9 @@ begin
   if (rst)
     clk_en  <= 1'b0;
   else if ({1'b0, clk_cnt} == (preset_cnt-1'b1))
-    clk_en  <=#Tp 1'b1;
+    clk_en  <= 1'b1;
   else
-    clk_en  <=#Tp 1'b0;
+    clk_en  <= 1'b0;
 end
 
 
@@ -338,26 +338,24 @@ begin
   if (rst)
     clk_en_q  <= 1'b0;
   else
-    clk_en_q  <=#Tp clk_en;
+    clk_en_q  <= clk_en;
 end
 
 
 
 /* Changing states */
-assign go_sync = clk_en_q & seg2 & (quant_cnt[2:0] == time_segment2_value) & (~hard_sync) & (~resync);
+assign go_sync = clk_en_q & seg2 & (quant_cnt[5:0] == time_segment2_value) & (~hard_sync) & (~resync);
 assign go_seg1 = clk_en_q & (sync | hard_sync | (resync & seg2 & sync_window) | (resync_latched & sync_window));
-assign go_seg2 = clk_en_q & (seg1 & (~hard_sync) & (quant_cnt == (time_segment1_value + delay)));
-
-
+assign go_seg2 = clk_en_q & (seg1 & (~hard_sync) & (quant_cnt == time_segment1_value + delay));
 
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
     tx_point <= 1'b0;
   else
-    tx_point <=#Tp ~tx_point & seg2 & (  clk_en & (quant_cnt[2:0] == time_segment2_value)
-                                       | (clk_en | clk_en_q) & (resync | hard_sync)
-                                      );    // When transmitter we should transmit as soon as possible.
+    tx_point <= ~tx_point & seg2 & (  clk_en & (quant_cnt[5:0] == time_segment2_value)
+                                     | (clk_en | clk_en_q) & (resync | hard_sync)
+                                    );    // When transmitter we should transmit as soon as possible.
 end
 
 
@@ -369,7 +367,7 @@ begin
   if (rst)
     resync_latched <= 1'b0;
   else if (resync & seg2 & (~sync_window))
-    resync_latched <=#Tp 1'b1;
+    resync_latched <= 1'b1;
   else if (go_seg1)
     resync_latched <= 1'b0;
 end
@@ -382,7 +380,7 @@ begin
   if (rst)
     sync <= 1'b0;
   else if (clk_en_q)
-    sync <=#Tp go_sync;
+    sync <= go_sync;
 end
 
 
@@ -392,9 +390,9 @@ begin
   if (rst)
     seg1 <= 1'b1;
   else if (go_seg1)
-    seg1 <=#Tp 1'b1;
+    seg1 <= 1'b1;
   else if (go_seg2)
-    seg1 <=#Tp 1'b0;
+    seg1 <= 1'b0;
 end
 
 
@@ -404,9 +402,9 @@ begin
   if (rst)
     seg2 <= 1'b0;
   else if (go_seg2)
-    seg2 <=#Tp 1'b1;
+    seg2 <= 1'b1;
   else if (go_sync | go_seg1)
-    seg2 <=#Tp 1'b0;
+    seg2 <= 1'b0;
 end
 
 
@@ -414,11 +412,11 @@ end
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
-    quant_cnt <= 5'h0;
+    quant_cnt <= 8'h0;
   else if (go_sync | go_seg1 | go_seg2)
-    quant_cnt <=#Tp 5'h0;
+    quant_cnt <= 8'h0;
   else if (clk_en_q)
-    quant_cnt <=#Tp quant_cnt + 1'b1;
+    quant_cnt <= quant_cnt + 1'b1;
 end
 
 
@@ -426,17 +424,16 @@ end
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
-    delay <= 4'h0;
+    delay <= 8'h0;
   else if (resync & seg1 & (~transmitting | transmitting & (tx_next_sp | (tx & (~rx)))))  // when transmitting 0 with positive error delay is set to 0
-    delay <=#Tp (quant_cnt > {3'h0, sync_jump_width_value})? ({2'h0, sync_jump_width_value} + 1'b1) : (quant_cnt + 1'b1);
+    delay <= (quant_cnt > {3'h0, sync_jump_width_value})? ({3'h0, sync_jump_width_value} + 1'b1) : (quant_cnt + 1'b1);
   else if (go_sync | go_seg1)
-    delay <=#Tp 4'h0;
+    delay <= 8'h0;
 end
 
 
 // If early edge appears within this window (in seg2 stage), phase error is fully compensated
-assign sync_window = ((time_segment2_value - quant_cnt[2:0]) < ( sync_jump_width_value + 1'b1));
-
+assign sync_window = ((time_segment2_value - quant_cnt[5:0]) < (sync_jump_width_value + 1'b1));
 
 // Sampling data (memorizing two samples all the time).
 always @ (posedge clk or posedge rst)
@@ -459,23 +456,23 @@ begin
     end
   else if (go_error_frame)
     begin
-      sampled_bit_q <=#Tp sampled_bit;
-      sample_point <=#Tp 1'b0;
+      sampled_bit_q <= sampled_bit;
+      sample_point <= 1'b0;
     end
   else if (clk_en_q & (~hard_sync))
     begin
-      if (seg1 & (quant_cnt == (time_segment1_value + delay)))
+      if (seg1 & (quant_cnt == time_segment1_value + delay))
         begin
-          sample_point <=#Tp 1'b1;
-          sampled_bit_q <=#Tp sampled_bit;
+          sample_point <= 1'b1;
+          sampled_bit_q <= sampled_bit;
           if (triple_sampling_value)
-            sampled_bit <=#Tp (sample[0] & sample[1]) | ( sample[0] & rx) | (sample[1] & rx);
+            sampled_bit <= (sample[0] & sample[1]) | (sample[0] & rx) | (sample[1] & rx);
           else
-            sampled_bit <=#Tp rx;
+            sampled_bit <= rx;
         end
     end
   else
-    sample_point <=#Tp 1'b0;
+    sample_point <= 1'b0;
 end
 
 
@@ -486,11 +483,11 @@ begin
   if (rst)
     tx_next_sp <= 1'b0;
   else if (go_overload_frame | (go_error_frame & (~node_error_passive)) | go_tx | send_ack)
-    tx_next_sp <=#Tp 1'b0;
+    tx_next_sp <= 1'b0;
   else if (go_error_frame & node_error_passive)
-    tx_next_sp <=#Tp 1'b1;
+    tx_next_sp <= 1'b1;
   else if (sample_point)
-    tx_next_sp <=#Tp tx_next;
+    tx_next_sp <= tx_next;
 end
 
 
@@ -500,13 +497,13 @@ end
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
-    sync_blocked <=#Tp 1'b1;
+    sync_blocked <= 1'b1;
   else if (clk_en_q)
     begin
       if (resync)
-        sync_blocked <=#Tp 1'b1;
+        sync_blocked <= 1'b1;
       else if (go_seg2)
-        sync_blocked <=#Tp 1'b0;
+        sync_blocked <= 1'b0;
     end
 end
 
@@ -515,11 +512,11 @@ end
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
-    hard_sync_blocked <=#Tp 1'b0;
+    hard_sync_blocked <= 1'b0;
   else if (hard_sync & clk_en_q | (transmitting & transmitter | go_tx) & tx_point & (~tx_next))
-    hard_sync_blocked <=#Tp 1'b1;
-  else if ( fdf_detected | (go_rx_inter | (rx_idle | rx_inter) & sample_point & sampled_bit) )  // When a glitch performed synchronization
-    hard_sync_blocked <=#Tp 1'b0;
+    hard_sync_blocked <= 1'b1;
+  else if (fdf_detected | (go_rx_inter | (rx_idle | rx_inter) & sample_point & sampled_bit))  // When a glitch performed synchronization
+    hard_sync_blocked <= 1'b0;
 end
 
 

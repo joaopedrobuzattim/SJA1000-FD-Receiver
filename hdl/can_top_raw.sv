@@ -207,41 +207,28 @@
 //
 
 // synopsys translate_off
-`include "timescale.sv"
+
 // synopsys translate_on
-`include "can_defines.sv"
+
 
 module can_top_raw
-(
+( 
+  // Register Configuration Ports
   // all reg_* ports are in clk_i clock domain
-  input  wire       reg_rst_i,
-  input  wire       reg_re_i,
-  input  wire       reg_we_i,
-  input  wire [7:0] reg_addr_read_i,
-  input  wire [7:0] reg_addr_write_i,
-  input  wire [7:0] reg_data_in,
-  output reg  [7:0] reg_data_out,
-  input  wire [15:0] reg_data_in_16,
-  output reg  [15:0] reg_data_out_16,
+  input  wire         reg_rst_i,
+  input  wire         reg_re_i,
+  input  wire         reg_we_i,
+  input  wire [7:0]   reg_addr_read_i,
+  input  wire [7:0]   reg_addr_write_i,
+  input  wire [31:0]  reg_data_in,
+  output reg  [31:0]  reg_data_out,
 
   input  wire         clk_i,
   input  wire         rx_i,
   output wire         tx_o,
   output wire         bus_off_on,
-  output wire         irq_on,
-  output wire         clkout_o
-
-  // Bist
-`ifdef CAN_BIST
-  ,
-  // debug chain signals
-  input  wire mbist_si_i,       // bist scan serial in
-  output wire mbist_so_o,       // bist scan serial out
-  input [`CAN_MBIST_CTRL_WIDTH - 1:0] mbist_ctrl_i        // bist chain shift control
-`endif
+  output wire         irq_on
 );
-
-parameter Tp = 1;
 
 
 wire go_rx_skip_fdf;
@@ -256,13 +243,12 @@ wire go_rx_inter_btl;
 
 /* FD Control Register */
 wire en_FD_rx;
+wire en_FD_iso;
 
 reg          data_out_fifo_selected;
 
-
-wire   [7:0] data_out_fifo;
+wire  [31:0] data_out_fifo;
 wire   [7:0] data_out_regs;
-wire   [15:0] data_out_regs_16;
 
 
 /* Mode register */
@@ -290,18 +276,20 @@ wire         read_arbitration_lost_capture_reg;
 wire         read_error_code_capture_reg;
 wire   [7:0] error_capture_code;
 
-/* Bus Timing 0 register */
-wire   [5:0] baud_r_presc;
-wire   [1:0] sync_jump_width;
-wire   [5:0] baud_r_presc_fd;
-wire   [1:0] sync_jump_width_fd;
-
-/* Bus Timing 1 register */
-wire   [3:0] time_segment1;
-wire   [2:0] time_segment2;
+/* Bus Timing */
+wire   [6:0] prop_seg;
+wire   [5:0] phase_seg_1;
+wire   [5:0] phase_seg_2;
+wire   [6:0] baud_r_presc;
+wire   [4:0] sjw;
 wire         triple_sampling;
-wire   [3:0] time_segment1_fd;
-wire   [2:0] time_segment2_fd;
+
+/* Bus Timing FD*/
+wire   [5:0] prop_seg_fd;
+wire   [4:0] phase_seg_1_fd;
+wire   [4:0] phase_seg_2_fd;
+wire   [6:0] baud_r_presc_fd;
+wire   [4:0] sjw_fd;
 wire         triple_sampling_fd;
 
 /* Error Warning Limit register */
@@ -376,6 +364,7 @@ wire   [7:0] tx_err_cnt;
 wire         rx_err_cnt_dummy;  // The MSB is not displayed. It is just used for easier calculation (no counter overflow).
 wire         tx_err_cnt_dummy;  // The MSB is not displayed. It is just used for easier calculation (no counter overflow).
 wire         transmit_status;
+wire         transmit_buffer_status;
 wire         receive_status;
 wire         tx_successful;
 wire         need_to_tx;
@@ -422,11 +411,18 @@ can_registers i_can_registers
   .addr_read(addr_read),
   .addr_write(addr_write),
   .data_in(reg_data_in),
-  .data_in_16(reg_data_in_16),
   .data_out(data_out_regs),
-  .data_out_16(data_out_regs_16),
   .irq_n(irq_on),
-
+  .tx_data_0(tx_data_0),
+  .tx_data_1(tx_data_1),
+  .tx_data_2(tx_data_2),
+  .tx_data_3(tx_data_3),
+  .tx_data_4(tx_data_4),
+  .tx_data_5(tx_data_5),
+  .tx_data_6(tx_data_6),
+  .tx_data_7(tx_data_7),
+  .tx_data_8(tx_data_8),
+  .tx_data_9(tx_data_9),
   .sample_point(sample_point),
   .transmitting(transmitting),
   .set_reset_mode(set_reset_mode),
@@ -435,6 +431,7 @@ can_registers i_can_registers
   .rx_err_cnt(rx_err_cnt),
   .tx_err_cnt(tx_err_cnt),
   .transmit_status(transmit_status),
+  .transmit_buffer_status(transmit_buffer_status),
   .receive_status(receive_status),
   .tx_successful(tx_successful),
   .need_to_tx(need_to_tx),
@@ -449,6 +446,7 @@ can_registers i_can_registers
 
   /* FD Control Register  */
   .en_FD_rx(en_FD_rx),
+  .en_FD_iso(en_FD_iso),
 
   /* Mode register */
   .reset_mode(reset_mode),
@@ -475,18 +473,20 @@ can_registers i_can_registers
   .read_error_code_capture_reg(read_error_code_capture_reg),
   .error_capture_code(error_capture_code),
 
-  /* Bus Timing 0 register */
+  /* Bus Timing Register */
+  .prop_seg(prop_seg),
+  .phase_seg_1(phase_seg_1),
+  .phase_seg_2(phase_seg_2),
   .baud_r_presc(baud_r_presc),
-  .sync_jump_width(sync_jump_width),
-  .baud_r_presc_fd(baud_r_presc_fd),
-  .sync_jump_width_fd(sync_jump_width_fd),
-
-  /* Bus Timing 1 register */
-  .time_segment1(time_segment1),
-  .time_segment2(time_segment2),
+  .sjw(sjw),
   .triple_sampling(triple_sampling),
-  .time_segment1_fd(time_segment1_fd),
-  .time_segment2_fd(time_segment2_fd),
+
+  /* Bus Timing FD Register */
+  .prop_seg_fd(prop_seg_fd),
+  .phase_seg_1_fd(phase_seg_1_fd),
+  .phase_seg_2_fd(phase_seg_2_fd),
+  .baud_r_presc_fd(baud_r_presc_fd),
+  .sjw_fd(sjw_fd),
   .triple_sampling_fd(triple_sampling_fd),
 
   /* Error Warning Limit register */
@@ -500,7 +500,6 @@ can_registers i_can_registers
 
   /* Clock Divider register */
   .extended_mode(extended_mode),
-  .clkout(clkout_o),
 
   /* This section is for BASIC and EXTENDED mode */
   /* Acceptance code register */
@@ -519,8 +518,32 @@ can_registers i_can_registers
   /* Acceptance mask register */
   .acceptance_mask_1(acceptance_mask_1),
   .acceptance_mask_2(acceptance_mask_2),
-  .acceptance_mask_3(acceptance_mask_3),
+  .acceptance_mask_3(acceptance_mask_3)
   /* End: This section is for EXTENDED mode */
+);
+
+
+assign rx_inter_btl = (~en_FD_rx) ? (rx_inter | fdf_r ): rx_inter;
+assign go_rx_inter_btl = (~en_FD_rx)  ? (go_rx_inter | go_rx_skip_fdf) : go_rx_inter;
+
+/* Connecting can_tx_buffer module */
+can_tx_buffer i_can_tx_buffer
+( 
+  .clk(clk_i),
+  .rst(rst),
+
+  .we(reg_we_i),
+  .addr(reg_addr_write_i),
+  .data_in(reg_data_in),
+
+  /* Operation Mode Register*/
+  .extended_mode(extended_mode),
+
+
+  /* Mode register */
+  .reset_mode(reset_mode),
+
+  .transmit_buffer_status(transmit_buffer_status),
 
   /* Tx data registers. Holding identifier (basic mode), tx frame information (extended mode) and data */
   .tx_data_0(tx_data_0),
@@ -539,10 +562,6 @@ can_registers i_can_registers
   /* End: Tx data registers */
 );
 
-
-assign rx_inter_btl = (~en_FD_rx) ? (rx_inter | fdf_r ): rx_inter;
-assign go_rx_inter_btl = (~en_FD_rx)  ? (go_rx_inter | go_rx_skip_fdf) : go_rx_inter;
-
 /* Connecting can_btl module */
 can_btl i_can_btl
 (
@@ -551,18 +570,20 @@ can_btl i_can_btl
   .rx(rx_sync),
   .tx(tx_o),
 
-  /* Bus Timing 0 register */
+  /* Bus Timing Register */
+  .prop_seg(prop_seg),
+  .phase_seg_1(phase_seg_1),
+  .phase_seg_2(phase_seg_2),
   .baud_r_presc(baud_r_presc),
-  .sync_jump_width(sync_jump_width),
-  .baud_r_presc_fd(baud_r_presc_fd),
-  .sync_jump_width_fd(sync_jump_width_fd),
-
-  /* Bus Timing 1 register */
-  .time_segment1(time_segment1),
-  .time_segment2(time_segment2),
+  .sjw(sjw),
   .triple_sampling(triple_sampling),
-  .time_segment1_fd(time_segment1_fd),
-  .time_segment2_fd(time_segment2_fd),
+
+  /* Bus Timing FD Register */
+  .prop_seg_fd(prop_seg_fd),
+  .phase_seg_1_fd(phase_seg_1_fd),
+  .phase_seg_2_fd(phase_seg_2_fd),
+  .baud_r_presc_fd(baud_r_presc_fd),
+  .sjw_fd(sjw_fd),
   .triple_sampling_fd(triple_sampling_fd),
 
   /* FD Control Register  */
@@ -625,6 +646,7 @@ can_bsp i_can_bsp
 
   /* FD Control Register  */
   .en_FD_rx(en_FD_rx),
+  .en_FD_iso(en_FD_iso),
 
   /* Mode register */
   .reset_mode(reset_mode),
@@ -735,38 +757,25 @@ can_bsp i_can_bsp
   .go_tx(go_tx),
   .send_ack(send_ack)
 
-
-`ifdef CAN_BIST
-  ,
-  /* BIST signals */
-  .mbist_si_i(mbist_si_i),
-  .mbist_so_o(mbist_so_o),
-  .mbist_ctrl_i(mbist_ctrl_i)
-`endif
 );
-
-
 
 // Multiplexing wb_dat_o from registers and rx fifo
 always @ (extended_mode or addr_read or reset_mode)
 begin
-  if (extended_mode & (~reset_mode) & ((addr_read >= 8'd16) && (addr_read <= 8'd28)) | (~extended_mode) & ((addr_read >= 8'd20) && (addr_read <= 8'd29)))
+  if (extended_mode & (~reset_mode) & ( (addr_read >= 8'd16) && (addr_read <= 8'd28) | (addr_read >= 8'd32) && (addr_read <= 8'd39) ) | (~extended_mode) & ((addr_read >= 8'd20) && (addr_read <= 8'd29)))
     data_out_fifo_selected = 1'b1;
   else
     data_out_fifo_selected = 1'b0;
 end
 
-
 always @ (posedge clk_i)
 begin
   if (cs & re)
     begin
-      if (data_out_fifo_selected) begin
-        reg_data_out <=#Tp data_out_fifo;
-        reg_data_out_16 <= 16'b0;
+      if(data_out_fifo_selected) begin
+        reg_data_out <= data_out_fifo;
       end else begin
-        reg_data_out <=#Tp data_out_regs;
-        reg_data_out_16 <=#Tp data_out_regs_16;
+        reg_data_out <= {24'b0,data_out_regs};
       end
     end
 end
@@ -782,8 +791,8 @@ begin
     end
   else
     begin
-      rx_sync_tmp <=#Tp rx_i;
-      rx_sync     <=#Tp rx_sync_tmp;
+      rx_sync_tmp <= rx_i;
+      rx_sync     <= rx_sync_tmp;
     end
 end
 

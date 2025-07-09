@@ -2216,7 +2216,7 @@ task test_resync_fd_err;
 
             $display("sending FD frame");
             send_bit(0);  // SOF
-            //send_bits(11, 11'b01010101010);    // ID
+            send_bits(11, 11'b01010101010);    // ID
             send_bits(11, 11'b00010000100);    // ID
             send_bit(1);  // RTR
             send_bit(0);  // IDE
